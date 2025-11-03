@@ -1,8 +1,6 @@
 package com.skypapaya.firerescuemanagesystem;
-
 import com.skypapaya.firerescuemanagesystem.DAO.EnvironmentDAO;
 import com.skypapaya.firerescuemanagesystem.DAO.UserDAO;
-
 import com.skypapaya.firerescuemanagesystem.DAO.VitalSignsDAO;
 import com.skypapaya.firerescuemanagesystem.mqtt.HuaweiCloudMQTT;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +25,8 @@ public class FireRescueManageSystemApplication implements ApplicationRunner {
 
     public static void main(String[] args) {
         SpringApplication.run(FireRescueManageSystemApplication.class, args);
+        System.out.print("start");
+
     }
 
     @Override
@@ -36,7 +36,5 @@ public class FireRescueManageSystemApplication implements ApplicationRunner {
         HuaweiCloudMQTT huaweiCloudMQTT = new HuaweiCloudMQTT(vitalSignsDAO,environmentDAO);
         //huaweiCloudMQTT.saveInf();
         huaweiCloudMQTT.getInf();
-
-
     }
 }
