@@ -2,7 +2,7 @@
 消息中心的“全部标为已读”、“全部删除”和“清空回收站”无反应
 @member: ljx
 -->
-<template>
+  <template>
   <div class="container">
     <el-tabs v-model="message">
       <el-tab-pane :label="`未读消息(${state.unread.length})`" name="first">
