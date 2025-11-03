@@ -1,3 +1,7 @@
+<!-- 
+消息中心的“全部标为已读”、“全部删除”和“清空回收站”无反应
+@member: ljx
+-->
 <template>
   <div class="container">
     <el-tabs v-model="message">
@@ -16,7 +20,8 @@
           </el-table-column>
         </el-table>
         <div class="handle-row">
-          <el-button type="primary">全部标为已读</el-button>
+          <!--ljx:添加@click事件-->
+          <el-button type="primary" @click="handleReadAll">全部标为已读</el-button>
         </div>
       </el-tab-pane>
       <el-tab-pane :label="`已读消息(${state.read.length})`" name="second">
@@ -35,7 +40,8 @@
             </el-table-column>
           </el-table>
           <div class="handle-row">
-            <el-button type="danger">删除全部</el-button>
+            <!--ljx:添加@click事件-->
+            <el-button type="danger" @click="handleDelAll">删除全部</el-button>
           </div>
         </template>
       </el-tab-pane>
@@ -55,7 +61,8 @@
             </el-table-column>
           </el-table>
           <div class="handle-row">
-            <el-button type="danger">清空回收站</el-button>
+            <!--ljx:添加@click事件-->
+            <el-button type="danger" @click="handleClearAll">清空回收站</el-button>
           </div>
         </template>
       </el-tab-pane>
@@ -103,6 +110,25 @@ const handleDel = (index: number) => {
 const handleRestore = (index: number) => {
   const item = state.recycle.splice(index, 1);
   state.read = item.concat(state.read);
+};
+// ljx:添加全部标为已读、删除全部以及清空回收站的处理函数
+// 全部标为已读
+const handleReadAll = () => {
+    // 把所有 unread 数组的元素都移动到 read 数组
+    state.read = [...state.unread, ...state.read];
+    state.unread = [];
+};
+
+// 删除全部（已读）
+const handleDelAll = () => {
+    // 把所有 read 数组的元素都移动到 recycle 数组
+    state.recycle = [...state.read, ...state.recycle];
+    state.read = [];
+};
+
+// 清空回收站
+const handleClearAll = () => {
+    state.recycle = [];
 };
 </script>
 
