@@ -5,34 +5,63 @@
 
 
     <resultMap id="userResultMap" type="com.skypapaya.firerescuemanagesystem.DO.UserDO">
-        <id column="id" property="id" jdbcType="INTEGER" />
-        <result column="name" property="name" jdbcType="VARCHAR" />
-        <result column="age" property="age" jdbcType="INTEGER" />
-        <result column="e_mail" property="eMail" jdbcType="VARCHAR" />
-        <result column="phone" property="phone" jdbcType="VARCHAR" />
-        <result column="address" property="address" jdbcType="VARCHAR" />
-        <result column="create_time" property="gmtCreated" />
-        <result column="update_time" property="gmtModified"  />
+        <id column="id" property="id" jdbcType="INTEGER"/>
+        <result column="name" property="name" jdbcType="VARCHAR"/>
+        <result column="age" property="age" jdbcType="INTEGER"/>
+        <result column="e_mail" property="eMail" jdbcType="VARCHAR"/>
+        <result column="phone" property="phone" jdbcType="VARCHAR"/>
+        <result column="address" property="address" jdbcType="VARCHAR"/>
+        <result column="create_time" property="gmtCreated"/>
+        <result column="update_time" property="gmtModified"/>
     </resultMap>
 
-    <insert id="insertUser" parameterType="com.skypapaya.firerescuemanagesystem.DO.UserDO" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO user (name, age, e_mail, phone, address, sex,authority,gmt_created, gmt_modified)
-        VALUES (#{name}, #{age}, #{eMail}, #{phone}, #{address},#{sex} , #{authority} , now(), now())
+    <insert id="insertUser" parameterType="com.skypapaya.firerescuemanagesystem.DO.UserDO" useGeneratedKeys="true"
+            keyProperty="id">
+        INSERT INTO user (name, age, e_mail, phone, address, sex, authority, gmt_created, gmt_modified)
+        VALUES (#{name}, #{age}, #{eMail}, #{phone}, #{address}, #{sex}, #{authority}, now(), now())
     </insert>
 
-    <select id="findAll" parameterType="int" resultMap="userResultMap">
-        SELECT * FROM user
+    <update id="updateUser" parameterType="com.skypapaya.firerescuemanagesystem.DO.UserDO">
+        UPDATE user
+        SET name         = #{name},
+            age          = #{age},
+            e_mail       = #{eMail},
+            phone        = #{phone},
+            address      = #{address},
+            sex          = #{sex},
+            authority    = #{authority},
+            gmt_modified = now()
+        WHERE id = #{id}
+    </update>
+
+    <insert id="registerUser" parameterType="com.skypapaya.firerescuemanagesystem.DO.UserDO" useGeneratedKeys="true"
+            keyProperty="id">
+        INSERT INTO user (name, password, authority, gmt_created, gmt_modified)
+        VALUES (#{name}, #{password}, 'user', now(), now())
+    </insert>
+
+    <select id="findByName" resultMap="userResultMap">
+        SELECT *
+        FROM user
+        WHERE name = #{name} LIMIT 1
     </select>
-    
+
+    <select id="findAll" parameterType="int" resultMap="userResultMap">
+        SELECT *
+        FROM user
+    </select>
+
     <delete id="delete">
-        delete from user where id = #{id}
+        delete
+        from user
+        where id = #{id}
     </delete>
 
-<!--    <select id="page" parameterType="">-->
-<!--        SELECT * FROM user LIMIT #{pageNum}, #{size}-->
-<!--    </select>-->
-<!--    <select id="count">-->
-<!--        SELECT COUNT(*) FROM user-->
-<!--    </select>-->
+    <!--    <select id="page" parameterType="">-->
+    <!--        SELECT * FROM user LIMIT #{pageNum}, #{size}-->
+    <!--    </select>-->
+    <!--    <select id="count">-->
+    <!--        SELECT COUNT(*) FROM user-->
+    <!--    </select>-->
 
 </mapper>
