@@ -5,6 +5,10 @@
       <el-input v-model="form.name"></el-input>
     </el-form-item>
 
+    <el-form-item label="性别" prop="sex">
+      <el-input v-model="form.sex"></el-input>
+    </el-form-item>
+
     <el-form-item label="ID" prop="id">
       <el-input v-model.number="form.id"></el-input>
     </el-form-item>
@@ -60,6 +64,7 @@ const defaultData = {
   phone: '15285615707',
   authority: 0,
   address: 'NJUPT',
+  sex:'male',
   createdTime: new Date()
 };
 

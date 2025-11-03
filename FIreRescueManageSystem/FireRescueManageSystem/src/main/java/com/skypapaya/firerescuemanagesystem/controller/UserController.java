@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+
 @RestController
 @RequestMapping("/user")
 public class UserController {
@@ -46,5 +47,17 @@ public class UserController {
         return Result.success(res);
     }
 
+    //新增用户
+    @PutMapping("/updateUser")
+    @ResponseBody
+    public Result updateUser(@RequestBody UserDO user) {
+        // gmtModified 会在 SQL 语句中自动更新
+        int result = userDAO.updateUser(user);
+        if (result > 0) {
+            return Result.success(user);
+        } else {
+            return Result.error("500", "更新失败");
+        }
+    }
 
 }

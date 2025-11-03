@@ -12,6 +12,8 @@ public interface UserDAO {
 
     int insertUser(UserDO user);
 
+    int updateUser(UserDO user);
+
     int delete(@Param("id") Long id);
 
     //分页查询的实现
