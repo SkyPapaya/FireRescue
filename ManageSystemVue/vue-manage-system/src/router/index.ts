@@ -33,6 +33,15 @@ const routes: RouteRecordRaw[] = [
                 component: () => import(/* webpackChunkName: "table" */ '../views/table.vue'),
             },
             {
+                path: '/device-management',
+                name: 'deviceManagement',
+                meta: {
+                    title: '设备管理',
+                    permiss: '2', // 假设和'表格'用一样的权限
+                },
+                component: () => import(/* webpackChunkName: "deviceManagement" */ '../views/deviceManagement.vue'),
+            },
+            {
                 path: '/NJUPT',
                 name: 'device in NUJPT',
                 meta: {

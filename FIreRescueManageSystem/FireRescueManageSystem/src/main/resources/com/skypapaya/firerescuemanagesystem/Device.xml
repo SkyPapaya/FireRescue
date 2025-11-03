@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skypapaya.firerescuemanagesystem.DAO.DeviceDAO">
+
+    <resultMap id="deviceResultMap" type="com.skypapaya.firerescuemanagesystem.DO.DeviceDO">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="location" property="location"/>
+        <result column="status" property="status"/>
+        <result column="gmt_created" property="gmtCreated"/>
+        <result column="gmt_modified" property="gmtModified"/>
+    </resultMap>
+
+    <select id="findAllDevices" resultMap="deviceResultMap">
+        SELECT * FROM device ORDER BY gmt_created DESC
+    </select>
+
+    <insert id="insertDevice" parameterType="com.skypapaya.firerescuemanagesystem.DO.DeviceDO" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO device (name, location, status, gmt_created, gmt_modified)
+        VALUES (#{name}, #{location}, #{status}, now(), now())
+    </insert>
+
+    <delete id="deleteDeviceById">
+        DELETE FROM device WHERE id = #{id}
+    </delete>
+
+</mapper>
