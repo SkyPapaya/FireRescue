@@ -18,6 +18,49 @@ public class UserController {
     @Autowired
     private UserDAO userDAO;
 
+    @PostMapping("/login")
+    @ResponseBody
+    public Result loginUser(@RequestBody UserDO loginRequest) {
+        // 1. 根据用户名查询数据库
+        UserDO dbUser = userDAO.findByName(loginRequest.getName());
+
+        // 2. 检查用户是否存在
+        if (dbUser == null) {
+            return Result.error("404", "用户不存在");
+        }
+
+        // 3. 检查密码 (明文比较)
+        if (!loginRequest.getPassword().equals(dbUser.getPassword())) {
+            return Result.error("401", "密码错误");
+        }
+
+        // 4. 登录成功
+        // 返回完整的用户信息，前端需要用 authority
+        return Result.success(dbUser);
+    }
+
+
+    @PostMapping("/register")
+    @ResponseBody
+    public Result registerUser(@RequestBody UserDO user) {
+        // 检查用户名是否已存在 (可选但推荐)
+        // ... (
+        //   List<UserDO> users = userDAO.findByName(user.getName());
+        //   if (users.size() > 0) {
+        //       return Result.error("501", "用户名已存在");
+        //   }
+        // )
+
+        // 我们跳过加密，直接插入
+        int result = userDAO.registerUser(user);
+
+        if (result > 0) {
+            return Result.success("注册成功");
+        } else {
+            return Result.error("500", "注册失败");
+        }
+    }
+
     //返回所有user对象
     @GetMapping("/users")
     public Result findAll() {

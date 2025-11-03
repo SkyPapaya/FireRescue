@@ -14,6 +14,8 @@ public class UserDO {
     String sex;
     String authority;
     String address;
+    String password;
     LocalDateTime gmtCreated;
     LocalDateTime gmtModified;
+
 }
