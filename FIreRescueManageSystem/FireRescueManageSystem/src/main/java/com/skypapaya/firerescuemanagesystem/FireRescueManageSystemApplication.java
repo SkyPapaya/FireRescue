@@ -1,5 +1,6 @@
 package com.skypapaya.firerescuemanagesystem;
 import com.skypapaya.firerescuemanagesystem.DAO.EnvironmentDAO;
+import com.skypapaya.firerescuemanagesystem.DAO.MessageDAO;
 import com.skypapaya.firerescuemanagesystem.DAO.UserDAO;
 import com.skypapaya.firerescuemanagesystem.DAO.VitalSignsDAO;
 import com.skypapaya.firerescuemanagesystem.mqtt.HuaweiCloudMQTT;
@@ -22,6 +23,8 @@ public class FireRescueManageSystemApplication implements ApplicationRunner {
     @Autowired
     VitalSignsDAO vitalSignsDAO;
 
+    @Autowired
+    MessageDAO messageDAO; //注入MessageDAO
 
     public static void main(String[] args) {
         SpringApplication.run(FireRescueManageSystemApplication.class, args);
