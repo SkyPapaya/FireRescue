@@ -4897,7 +4897,7 @@ export default router;
 
 
 
-==================== START FILE: ManageSystemVue\vue-manage-system\src\store\permiss.ts ====================
+==================== START FILE:
 
 import { defineStore } from 'pinia';
 
@@ -4924,7 +4924,7 @@ export const usePermissStore = defineStore('permiss', {
 });
 
 
-==================== END FILE: ManageSystemVue\vue-manage-system\src\store\permiss.ts ====================
+==================== END FILE:
 
 
 

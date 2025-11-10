@@ -1,5 +1,4 @@
 import {createRouter, createWebHashHistory, RouteRecordRaw} from 'vue-router';
-import {usePermissStore} from '../store/permiss';
 import Home from '../views/home.vue';
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
@@ -147,32 +146,6 @@ const router = createRouter({
     history: createWebHashHistory(),
     routes,
 });
-
-// ========== 以下是修改后的路由守卫 ==========
-router.beforeEach((to, from, next) => {
-    NProgress.start();
-    const role = localStorage.getItem('ms_username');
-
-    if (!role && to.path !== '/login') {
-        // 1. 如果未登录且访问的不是 /login，重定向到 /login
-        next('/login');
-    } else if (to.meta.permiss) {
-        // 2. 如果已登录，且目标路由需要权限检查 (to.meta.permiss 存在)
-        //    **此时 Pinia 必定已初始化**
-        const permiss = usePermissStore();
-        if (!permiss.key.includes(String(to.meta.permiss))) {
-            // 权限不足
-            next('/403');
-        } else {
-            next();
-        }
-    } else {
-        // 3. 如果已登录，且目标路由不需要权限 (例如 /login 页面)
-        //    或者如果未登录且访问的是 /login
-        next();
-    }
-});
-// ============================================
 
 router.afterEach(() => {
     NProgress.done()
