@@ -19,7 +19,7 @@ let option: {
   tooltip: { formatter: (params) => string; axisPointer: { animation: boolean }; trigger: string };
   title: { text: string }
 };
-let risk = 0.05;
+let risk = 1;
 
 const load = () => {
   service.get('environment/getTheLatest').then((res) => {

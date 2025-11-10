@@ -1,160 +1,126 @@
-import {createRouter, createWebHashHistory, RouteRecordRaw} from 'vue-router';
-import {usePermissStore} from '../store/permiss';
-import Home from '../views/home.vue';
-import NProgress from 'nprogress'
-import 'nprogress/nprogress.css'
+// 文件路径: src/router/index.ts (最终的生产版本)
 
-const routes: RouteRecordRaw[] = [
-    {
-        path: '/',
-        redirect: '/dashboard',
-    },
-    {
-        path: '/',
-        name: 'Home',
-        component: Home,
-        children: [
-            {
-                path: '/dashboard',
-                name: 'dashboard',
-                meta: {
-                    title: '系统首页',
-                    permiss: '1',
-                },
-                component: () => import(/* webpackChunkName: "dashboard" */ '../views/dashboard.vue'),
-            },
-            {
-                path: '/table',
-                name: 'basetable',
-                meta: {
-                    title: '表格',
-                    permiss: '2',
-                },
-                component: () => import(/* webpackChunkName: "table" */ '../views/table.vue'),
-            },
-            {
-                path: '/NJUPT',
-                name: 'device in NUJPT',
-                meta: {
-                    title: '万达茂设备监控',
-                    permiss: '2',
-                },
-                component: () => import(/* webpackChunkName: "table" */ '../views/WanDaMao.vue'),
-            },
-            {
-                path: '/NJU',
-                name: 'device in NJU',
-                meta: {
-                    title: '金鹰设备监控',
-                    permiss: '2',
-                },
-                component: () => import(/* webpackChunkName: "table" */ '../views/JingYin.vue'),
-            },
-            {
-                path: '/charts',
-                name: 'basecharts',
-                meta: {
-                    title: '图表',
-                    permiss: '11',
-                },
-                component: () => import(/* webpackChunkName: "charts" */ '../views/charts.vue'),
-            },
+import { createRouter, createWebHashHistory, RouteRecordRaw } from 'vue-router';
+import { useUserStore } from '../store/userStore'; // 导入 store
+import NProgress from 'nprogress';
+import 'nprogress/nprogress.css';
 
-            {
-                path: '/tabs',
-                name: 'tabs',
-                meta: {
-                    title: 'tab标签',
-                    permiss: '3',
-                },
-                component: () => import(/* webpackChunkName: "tabs" */ '../views/tabs.vue'),
-            },
-            {
-                path: '/monitor',
-                name: 'monitor',
-                meta: {
-                    title: '生命体征监测',
-                    permiss: '14',
-                },
-                component: () => import(/* webpackChunkName: "donate" */ '../views/monitor.vue'),
-            },
-            {
-                path: '/control',
-                name: 'control',
-                meta: {
-                    title: '设备控制',
-                    permiss: '15',
-                },
-                component: () => import(/* webpackChunkName: "donate" */ '../views/control.vue'),
+// 1. 从我们分离的路由文件中导入路由
+import { publicRoutes, asyncRoutes } from './index-routes';
 
-            },
-            {
-                path: '/map',
-                name: 'map',
-                meta: {
-                    title: '逃生路线',
-                    permiss: '1',
-                },
-                component: () => import(/* webpackChunkName: "dashboard" */ '../views/map.vue'),
-            },
-            {
-                path: '/permission',
-                name: 'permission',
-                meta: {
-                    title: '权限管理',
-                    permiss: '13',
-                },
-                component: () => import(/* webpackChunkName: "permission" */ '../views/permission.vue'),
-            },
-            {
-                path: '/user',
-                name: 'user',
-                meta: {
-                    title: '个人中心',
-                },
-                component: () => import(/* webpackChunkName: "user" */ '../views/user.vue'),
-            },
-        ],
-    },
-    {
-        path: '/login',
-        name: 'Login',
-        meta: {
-            title: '登录',
-        },
-        component: () => import(/* webpackChunkName: "login" */ '../views/login.vue'),
-    },
-    {
-        path: '/403',
-        name: '403',
-        meta: {
-            title: '没有权限',
-        },
-        component: () => import(/* webpackChunkName: "403" */ '../views/403.vue'),
-    },
-];
+/**
+ * 递归过滤异步路由
+ * @param routes 待过滤的路由 (asyncRoutes)
+ * @param authority 用户的角色 (例如 'admin')
+ * @returns 该角色可以访问的路由
+ */
+function filterAsyncRoutes(routes: RouteRecordRaw[], authority: string): RouteRecordRaw[] {
+    const accessibleRoutes: RouteRecordRaw[] = [];
+    routes.forEach(route => {
+        // 复制一份，避免污染
+        const tmp = { ...route };
 
+        // 检查 meta.roles 是否定义，以及 authority 是否在 roles 列表中
+        // 如果没有 meta.roles，则默认允许访问
+        const hasPermission = !tmp.meta || !tmp.meta.roles || (tmp.meta.roles as string[]).includes(authority);
+
+        if (hasPermission) {
+            if (tmp.children) {
+                // 如果有子路由，递归过滤
+                tmp.children = filterAsyncRoutes(tmp.children, authority);
+            }
+            accessibleRoutes.push(tmp);
+        }
+    });
+    return accessibleRoutes;
+}
+
+
+// 2. 创建 router 实例时，只加载公共路由
 const router = createRouter({
     history: createWebHashHistory(),
-    routes,
+    routes: publicRoutes, // 初始只加载公共路由
 });
 
-router.beforeEach((to, from, next) => {
+// 3. 标志位，防止路由重复添加
+let routesAdded = false;
+
+
+const catchAllRoute: RouteRecordRaw = {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    redirect: '/404'
+};
+
+
+/**
+ * 4. 核心：全局路由守卫
+ */
+router.beforeEach(async (to, from, next) => {
     NProgress.start();
-    const role = localStorage.getItem('ms_username');
-    const permiss = usePermissStore();
-    if (!role && to.path !== '/login') {
-        next('/login');
-    } else if (to.meta.permiss && !permiss.key.includes(to.meta.permiss)) {
-        // 如果没有权限，则进入403
-        next('/403');
+
+    // 必须在守卫内部获取 store 实例
+    const userStore = useUserStore();
+    const authority = userStore.authority; // (等同于 localStorage.getItem('ms_authority'))
+
+    if (authority) {
+        // --- 1. 用户已登录 ---
+        if (to.path === '/login') {
+            // 如果已登录，访问 /login 则重定向到首页
+            next('/');
+            NProgress.done();
+        } else {
+            // 检查路由是否已动态添加
+            if (!routesAdded) {
+                try {
+                    // 1. 根据角色过滤路由
+                    const finalRoutes = filterAsyncRoutes(asyncRoutes, authority);
+
+                    // 2. 动态添加过滤后的路由
+                    finalRoutes.forEach(route => {
+                        router.addRoute(route);
+                    });
+
+                    router.addRoute(catchAllRoute);
+
+                    // 3. 将完整路由列表存入 Pinia (供 sidebar.vue 使用)
+                    userStore.setAccessibleRoutes(publicRoutes.concat(finalRoutes));
+
+                    // 4. 设置标志位
+                    routesAdded = true;
+
+                    // 5. 使用 ...to, replace: true 确保路由已完全加载
+                    next({ ...to, replace: true });
+
+                } catch (error) {
+                    console.error('动态添加路由失败:', error);
+                    // 添加失败，清除登录状态并重定向到登录页
+                    userStore.clearAuth();
+                    next('/login');
+                    NProgress.done();
+                }
+            } else {
+                // 路由已添加，直接放行
+                next();
+            }
+        }
     } else {
-        next();
+        // --- 2. 用户未登录 ---
+        if (to.path === '/login' || to.path === '/404' || to.path === '/403') {
+            // 访问登录页或错误页，放行
+            next();
+        } else {
+            // 其他页面，全部重定向到登录页
+            next('/login');
+            NProgress.done();
+        }
     }
 });
 
 router.afterEach(() => {
-    NProgress.done()
-})
+    NProgress.done();
+});
+
+// (注意: header.vue 中的 window.location.reload() 会自动重置 routesAdded 标志位)
 
 export default router;

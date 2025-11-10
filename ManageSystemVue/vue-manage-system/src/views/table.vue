@@ -23,38 +23,31 @@
           ref="multipleTable"
           header-cell-class-name="table-header"
       >
-        <!--        id-->
         <el-table-column
             prop="id"
             label="ID"
             width="55"
             align="center"
         ></el-table-column>
-        <!--        用户名-->
         <el-table-column
             prop="name"
             label="用户名"
             align="center"
         ></el-table-column>
-        <!--       邮箱 -->
         <el-table-column label="邮箱" prop="e_mail" align="center">
         </el-table-column>
-        <!--          电话号码-->
         <el-table-column label="电话号码" prop="phone" align="center">
         </el-table-column>
-        <!--        权限-->
         <el-table-column label="权限" prop="authority" align="center">
         </el-table-column>
-        <!--        地址-->
         <el-table-column
             prop="address"
             label="地址"
             align="center"
         ></el-table-column>
 
-        <!--        注册时间-->
         <el-table-column
-            prop="createdTime"
+            prop="gmtCreated"
             label="注册时间"
             align="center"
         ></el-table-column>
@@ -92,6 +85,24 @@
         ></el-pagination>
       </div>
     </div>
+
+    <el-dialog
+        :title="idEdit ? '编辑用户' : '新增用户'"
+        v-model="visible"
+        width="30%"
+        @close="closeDialog"
+    >
+      <table-edit
+          :data="rowData"
+          :edit="idEdit"
+          :update="updateData"
+      ></table-edit>
+    </el-dialog>
+
+    <el-dialog title="查看详情" v-model="visible1" width="30%">
+      <table-detail :data="rowData"></table-detail>
+    </el-dialog>
+
   </div>
 </template>
 
@@ -106,45 +117,20 @@ import {
   View,
 } from "@element-plus/icons-vue";
 
-// 模拟API返回数据
-const fetchData = async () => {
-  // 模拟数据
-  return {
-    data: {
-      list: [
-        {
-          id: 1,
-          name: "John Doe",
-          e_mail: "john@example.com",
-          phone: "1234567890",
-          authority: "用户",
-          address: "123 Main St",
-          createdTime: "2024-04-05",
-        },
-        {
-          id: 2,
-          name: "Jane Smith",
-          e_mail: "jane@example.com",
-          phone: "0987654321",
-          authority: "管理员",
-          address: "456 Elm St",
-          createdTime: "2024-04-06",
-        },
+// 导入我们需要的组件和 service
+import TableEdit from '../components/table-edit.vue';
+import TableDetail from '../components/table-detail.vue';
+import service from '../utils/request';
 
-      ],
-      pageTotal: 50,
-    },
-  };
-};
 
 interface TableItem {
   id: number;
   name: string;
   e_mail: string;
   phone: string;
-  authority: number;
+  authority: number; // 确保类型匹配
   address: string;
-  createdTime: string;
+  gmtCreated: string; // 确保这个字段名和后端返回的一致
 }
 
 const query = reactive({
@@ -156,35 +142,79 @@ const query = reactive({
 
 const tableData = ref<TableItem[]>([]);
 const pageTotal = ref(0);
+const visible = ref(false);
+let idx: number = -1;
+const idEdit = ref(false);
+const rowData = ref<TableItem>();
+const visible1 = ref(false);
 
+
+// ========== 这是唯一且正确的 getData 函数 ==========
 const getData = async () => {
-  const res = await fetchData();
-  //tableData.value = res.data.list;
-  pageTotal.value = res.data.pageTotal || 50;
+  try {
+    // 请求后端的 /user/userPage 接口，并传入分页参数
+    const res = await service.get('/user/userPage', {
+      params: {
+        pageNum: query.pageIndex,
+        size: query.pageSize
+      }
+    });
+
+    // 你的后端 /userPage 接口返回的数据结构是 { code: "200", data: { total: ..., data: [...] } }
+    if (res.code === '200') {
+      tableData.value = res.data.data;  // 列表数据
+      pageTotal.value = res.data.total; // 总数
+    } else {
+      ElMessage.error(res.message || '加载数据失败');
+    }
+  } catch (error) {
+    console.error("获取真实数据失败", error);
+    ElMessage.error("后端数据加载失败");
+  }
 };
+// ===============================================
+
 
 const handleSearch = () => {
   query.pageIndex = 1;
   getData();
 };
-
 const handlePageChange = (val: number) => {
   query.pageIndex = val;
   getData();
 };
 
-const visible = ref(false);
-let idx: number = -1;
-const idEdit = ref(false);
-const rowData = ref<TableItem>();
+
 const handleEdit = (index: number, row: TableItem) => {
   idx = index;
-  rowData.value = row;
+  rowData.value = { ...row }; // 使用副本以防取消时修改
   idEdit.value = true;
   visible.value = true;
 };
-const updateData = (row: TableItem) => {
-  idEdit.value ? (tableData.value[idx] = row) : tableData.value.unshift(row);
+
+// 【已更新】包含 "新增" 和 "编辑" 的数据库逻辑
+const updateData = async (row: TableItem) => {
+  if (idEdit.value) {
+    // 【编辑用户】的逻辑
+    try {
+      await service.put('/user/updateUser', row);
+      ElMessage.success('修改成功');
+      getData(); // 重新加载数据
+    } catch (error) {
+      console.error(error);
+      ElMessage.error('修改失败');
+    }
+  } else {
+    // 【新增用户】的逻辑
+    try {
+      await service.post('/user/insertUser', row);
+      ElMessage.success('新增成功');
+      getData(); // Geluidsdata
+    } catch (error) {
+      console.error(error);
+      ElMessage.error('新增失败');
+    }
+  }
   closeDialog();
 };
 
@@ -193,17 +223,30 @@ const closeDialog = () => {
   idEdit.value = false;
 };
 
-const visible1 = ref(false);
+
 const handleView = (row: TableItem) => {
   rowData.value = row;
   visible1.value = true;
 };
 
+// 【已更新】新增时，清空表单
 const handleAdd = () => {
+  // ========== 在这里添加权限检查 ==========
+  const authority = localStorage.getItem('ms_authority');
+  if (authority !== 'admin') {
+    ElMessage.error('权限不够，只有管理员才能新增用户');
+    return; // 阻止函数继续执行
+  }
+  // ======================================
+
+  rowData.value = {} as TableItem; // 清空表单
+  idEdit.value = false;
   visible.value = true;
 };
 
+// 页面加载时获取数据
 getData();
+
 </script>
 
 <style scoped>

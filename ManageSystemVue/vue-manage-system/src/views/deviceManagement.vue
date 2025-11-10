@@ -60,7 +60,7 @@
 import { ref, reactive, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Delete, CirclePlusFilled } from "@element-plus/icons-vue";
-import service from '../utils/request'; // 导入 axios 实例 [cite: 477-481]
+import service from '../utils/request';
 
 // 设备接口类型
 interface DeviceItem {
@@ -71,22 +71,23 @@ interface DeviceItem {
   gmtCreated: string;
 }
 
-// 响应式变量
+// 设备列表
 const deviceList = ref<DeviceItem[]>([]);
+
+// 对话框可见性
 const dialogVisible = ref(false);
 
-// 新设备表单的数据
+// 新设备表单
 const newDeviceForm = reactive({
   name: "",
   location: "",
-  status: "online", // 默认值
+  status: "online",
 });
 
-// 1. 从后端获取设备数据
+// 从后端获取设备数据
 const getDeviceData = async () => {
   try {
-    // 调用我们创建的后端接口 /device/all
-    const res = await service.get('/device/all');
+    const res = await service.get('/device/all'); // 调用后端接口
     if (res.code === '200') {
       deviceList.value = res.data;
     } else {
@@ -97,24 +98,23 @@ const getDeviceData = async () => {
   }
 };
 
-// 页面加载时，自动获取一次数据
+// 页面加载时执行
 onMounted(() => {
   getDeviceData();
 });
 
-// 2. 处理删除按钮
+// 处理删除
 const handleDelete = (id: number) => {
-  ElMessageBox.confirm("确定要删除这个设备吗？数据将无法恢复。", "警告", {
+  ElMessageBox.confirm("确定要删除这个设备吗？", "提示", {
     type: "warning",
   })
       .then(async () => {
         // 确认删除
         try {
-          // 调用后端 /device/delete/{id} 接口
           const res = await service.delete(`/device/delete/${id}`);
           if (res.code === '200') {
             ElMessage.success("删除成功");
-            getDeviceData(); // 成功后刷新列表
+            getDeviceData(); // 刷新列表
           } else {
             ElMessage.error(res.message || '删除失败');
           }
@@ -127,8 +127,16 @@ const handleDelete = (id: number) => {
       });
 };
 
-// 3. 处理新增（打开弹窗）
+// 处理新增（打开弹窗）
 const handleAdd = () => {
+  // ========== 在这里添加权限检查 ==========
+  const authority = localStorage.getItem('ms_authority');
+  if (authority !== 'admin') {
+    ElMessage.error('权限不够，只有管理员才能新增设备');
+    return; // 阻止函数继续执行
+  }
+  // ======================================
+
   // 重置表单
   newDeviceForm.name = "";
   newDeviceForm.location = "";
@@ -136,15 +144,14 @@ const handleAdd = () => {
   dialogVisible.value = true;
 };
 
-// 4. 提交新增设备（发送到后端）
+// 提交新增设备
 const submitAddDevice = async () => {
   try {
-    // 调用后端 /device/add 接口
     const res = await service.post('/device/add', newDeviceForm);
     if (res.code === '200') {
       ElMessage.success("添加成功");
-      dialogVisible.value = false; // 关闭弹窗
-      getDeviceData(); // 成功后刷新列表
+      dialogVisible.value = false;
+      getDeviceData(); // 刷新列表
     } else {
       ElMessage.error(res.message || '添加失败');
     }

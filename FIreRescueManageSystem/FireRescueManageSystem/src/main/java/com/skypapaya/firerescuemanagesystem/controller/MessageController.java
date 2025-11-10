@@ -6,7 +6,9 @@ import com.skypapaya.firerescuemanagesystem.model.Result;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -16,48 +18,97 @@ public class MessageController {
     @Autowired
     private MessageDAO messageDAO;
 
-    // 获取消息列表 (0=未读, 1=已读, 2=回收站)
-    @GetMapping("/list/{status}")
-    public Result getMessagesByStatus(@PathVariable Integer status) {
-        return Result.success(messageDAO.findByStatus(status));
-    }
+    /**
+     * 获取所有消息，并按状态 (unread, read, recycle) 分组
+     * 这完全匹配 tabs.vue [cite: 683] 的 'state' 结构
+     */
+    @GetMapping("/all")
+    public Result getAllMessages() {
+        List<MessageDO> allMessages = messageDAO.findAll();
 
-    // 更新单条消息状态 (标为已读 / 移入回收站 / 还原)
-    @PutMapping("/status/{id}")
-    public Result updateMessageStatus(@PathVariable Long id, @RequestBody Map<String, Integer> payload) {
-        Integer newStatus = payload.get("status");
-        messageDAO.updateStatusById(id, newStatus);
-        return Result.success();
-    }
+        List<MessageDO> unread = new ArrayList<>();
+        List<MessageDO> read = new ArrayList<>();
+        List<MessageDO> recycle = new ArrayList<>();
 
-    // 批量更新 (全部标为已读 / 全部移入回收站)
-    @PutMapping("/status/all")
-    public Result updateAllMessagesStatus(@RequestBody Map<String, Integer> payload) {
-        Integer fromStatus = payload.get("fromStatus");
-        Integer toStatus = payload.get("toStatus");
-        messageDAO.updateAllStatus(fromStatus, toStatus);
-        return Result.success();
-    }
-
-    // 清空回收站
-    @DeleteMapping("/status/{status}")
-    public Result deleteMessagesByStatus(@PathVariable Integer status) {
-        // 确保只删除 status=2 (回收站) 的
-        if (status == 2) {
-            messageDAO.deleteByStatus(status);
-            return Result.success();
+        for (MessageDO msg : allMessages) {
+            switch (msg.getStatus()) {
+                case 0: // 未读
+                    unread.add(msg);
+                    break;
+                case 1: // 已读
+                    read.add(msg);
+                    break;
+                case 2: // 回收站
+                    recycle.add(msg);
+                    break;
+            }
         }
-        return Result.error("403", "禁止的操作");
+
+        Map<String, List<MessageDO>> result = new HashMap<>();
+        result.put("unread", unread);
+        result.put("read", read);
+        result.put("recycle", recycle);
+
+        return Result.success(result);
     }
 
-    // 新增消息
-    @PostMapping("/insertMessage")
-    public Result addMessage(@RequestBody Map<String, String> payload) {
-        MessageDO alertMessage = new MessageDO();
-        alertMessage.setTitle(payload.get("title"));
-        alertMessage.setMessageTime(LocalDateTime.now());
-        alertMessage.setStatus(0); // 0 = 未读
-        messageDAO.insertMessage(alertMessage);
+    /**
+     * 标为已读 (对应 handleRead [cite: 685])
+     * 0 -> 1
+     */
+    @PutMapping("/read/{id}")
+    public Result markAsRead(@PathVariable Long id) {
+        messageDAO.updateStatusById(id, 1);
+        return Result.success();
+    }
+
+    /**
+     * 删除到回收站 (对应 handleDel [cite: 686])
+     * 1 -> 2
+     */
+    @PutMapping("/recycle/{id}")
+    public Result moveToRecycle(@PathVariable Long id) {
+        messageDAO.updateStatusById(id, 2);
+        return Result.success();
+    }
+
+    /**
+     * 从回收站还原 (对应 handleRestore [cite: 687])
+     * 2 -> 1
+     */
+    @PutMapping("/restore/{id}")
+    public Result restoreFromRecycle(@PathVariable Long id) {
+        messageDAO.updateStatusById(id, 1);
+        return Result.success();
+    }
+
+    /**
+     * 全部标为已读 (对应 "全部标为已读" 按钮 [cite: 676-677])
+     * 0 -> 1
+     */
+    @PutMapping("/read-all")
+    public Result markAllAsRead() {
+        messageDAO.updateAllStatus(0, 1);
+        return Result.success();
+    }
+
+    /**
+     * 删除全部已读 (对应 "删除全部" 按钮 [cite: 679])
+     * 1 -> 2
+     */
+    @PutMapping("/recycle-all-read")
+    public Result moveAllReadToRecycle() {
+        messageDAO.updateAllStatus(1, 2);
+        return Result.success();
+    }
+
+    /**
+     * 清空回收站 (对应 "清空回收站" 按钮 [cite: 681-682])
+     * 2 -> (DELETE)
+     */
+    @DeleteMapping("/recycle-bin")
+    public Result emptyRecycleBin() {
+        messageDAO.deleteByStatus(2);
         return Result.success();
     }
 }

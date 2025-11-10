@@ -14,6 +14,12 @@ public interface UserDAO {
 
     int delete(@Param("id") Long id);
 
+    int registerUser(UserDO user);
+
+    //根据用户名查询用户
+
+    UserDO findByName(@Param("name") String name);
+
     //分页查询的实现
     @Select("select * from user limit #{page}, #{size}")
     List<UserDO> page(int page, int size);

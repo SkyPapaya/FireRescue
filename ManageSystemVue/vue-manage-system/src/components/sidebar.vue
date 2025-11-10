@@ -10,55 +10,61 @@
         unique-opened
         router
     >
-      <template v-for="item in items">
-        <template v-if="item.subs">
+      <template v-for="item in sidebarItems">
+        <template v-if="item.children && item.children.length > 0">
+
           <el-sub-menu
-              :index="item.index"
-              :key="item.index"
-              v-permiss="item.permiss"
+              :index="item.path"
+              :key="item.path"
           >
             <template #title>
               <el-icon>
-                <component :is="item.icon"></component>
+                <component :is="item.meta.icon"></component>
               </el-icon>
-              <span>{{ item.title }}</span>
+              <span>{{ item.meta.title }}</span>
             </template>
-            <template v-for="subItem in item.subs">
+
+            <template v-for="subItem in item.children">
+
               <el-sub-menu
-                  v-if="subItem.subs"
-                  :index="subItem.index"
-                  :key="subItem.index"
-                  v-permiss="item.permiss"
+                  v-if="subItem.children && subItem.children.length > 0"
+                  :index="subItem.path"
+                  :key="subItem.path"
               >
-                <template #title>{{ subItem.title }}</template>
+                <template #title>
+                  <span>{{ subItem.meta.title }}</span>
+                </template>
+
                 <el-menu-item
-                    v-for="(threeItem, i) in subItem.subs"
+                    v-for="(threeItem, i) in subItem.children"
                     :key="i"
-                    :index="threeItem.index"
+                    :index="threeItem.path"
                 >
-                  {{ threeItem.title }}
+                  <span>{{ threeItem.meta.title }}</span>
                 </el-menu-item>
+
               </el-sub-menu>
+
               <el-menu-item
                   v-else
-                  :index="subItem.index"
-                  v-permiss="item.permiss"
+                  :index="subItem.path"
+                  :key="subItem.path + '-item'"
               >
-                {{ subItem.title }}
+                <span>{{ subItem.meta.title }}</span>
               </el-menu-item>
             </template>
           </el-sub-menu>
         </template>
+
         <template v-else>
           <el-menu-item
-              :index="item.index"
-              :key="item.index"
-              v-permiss="item.permiss"
+              :index="item.path"
+              :key="item.path + '-main'"
           >
             <el-icon>
-              <component :is="item.icon"></component>
+              <component :is="item.meta.icon"></component>
             </el-icon>
-            <template #title>{{ item.title }}</template>
+            <template #title>{{ item.meta.title }}</template>
           </el-menu-item>
         </template>
       </template>
@@ -67,83 +73,15 @@
 </template>
 
 <script setup lang="ts">
-import {computed} from "vue";
-import {useSidebarStore} from "../store/sidebar";
-import {useRoute} from "vue-router";
+import { computed } from "vue";
+import { useSidebarStore } from "../store/sidebar";
+import { useRoute }from "vue-router";
+// 1. 导入 userStore
+import { useUserStore } from "../store/userStore";
 
-const items = [
-  {
-    icon: "Odometer",
-    index: "/dashboard",
-    title: "系统首页",
-    permiss: "1",
-  },
-  {
-    icon: "Calendar",
-    index: "1",
-    title: "人员及设备情况管理",
-    permiss: "2",
-    subs: [
-      {
-        index: "/table",
-        title: "人员管理",
-        permiss: "2",
-      },
-      {
-        index: "/device",
-        title: "设备管理",
-        permiss: "2",
-        subs: [
-          {
-            index: "/NJUPT",
-            title: "万达茂",
-            permiss: "3",
-
-          },
-          {
-            index: "/NJU",
-            title: "金鹰",
-            permiss: "3",
-
-          },
-
-        ]
-      },
-    ],
-  },
-  {
-    icon: "DocumentCopy",
-    index: "/tabs",
-    title: "消息中心",
-    permiss: "3",
-  },
-  {
-    icon: "PieChart",
-    index: "/charts",
-    title: "火情相关数据统计",
-    permiss: "11",
-  },
-
-  {
-    icon: "CoffeeCup",
-    index: "/monitor",
-    title: "生命体征监测",
-    permiss: "14",
-
-  },
-  {
-    icon: "Tools",
-    index: "/control",
-    title: "设备控制",
-    permiss: "15",
-  },
-  {
-    icon:"el-icon-picture-outline",
-    index: "/map",
-    title: "逃生路线",
-    permiss: "16",
-  }
-];
+// 2. ⬇️ ⬇️ ⬇️ 删除静态的 'items' 数组 ⬇️ ⬇️ ⬇️
+// const items = [ ... (整个数组被删除) ... ];
+// ⬆️ ⬆️ ⬆️
 
 const route = useRoute();
 const onRoutes = computed(() => {
@@ -151,9 +89,28 @@ const onRoutes = computed(() => {
 });
 
 const sidebar = useSidebarStore();
+// 3. 获取 userStore 实例
+const userStore = useUserStore();
+
+// 4. 【核心改动】从 userStore 动态计算菜单项
+const sidebarItems = computed(() => {
+  // 'accessibleRoutes' 包含了所有路由
+  // 我们只关心 'Home' 路由 (path: '/') 下的 children
+  const homeRoute = userStore.accessibleRoutes.find(r => r.name === 'Home');
+
+  if (homeRoute && homeRoute.children) {
+    // 过滤掉 meta.hidden = true 的路由 (如果需要的话)
+    return homeRoute.children.filter(
+        route => !route.meta || !route.meta.hidden
+    );
+  }
+  return []; // 返回空数组
+});
+
 </script>
 
 <style scoped>
+/* (样式保持不变) */
 .sidebar {
   display: block;
   position: absolute;

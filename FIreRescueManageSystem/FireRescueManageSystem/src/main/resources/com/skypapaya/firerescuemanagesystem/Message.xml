@@ -12,16 +12,14 @@
         <result column="gmt_modified" property="gmtModified"/>
     </resultMap>
 
+    <select id="findAll" resultMap="messageResultMap">
+        SELECT * FROM message ORDER BY message_time DESC
+    </select>
+
     <insert id="insertMessage" parameterType="com.skypapaya.firerescuemanagesystem.DO.MessageDO">
         INSERT INTO message (title, message_time, status, gmt_created, gmt_modified)
-        VALUES (#{title}, #{messageTime}, #{status}, now(), now())
+        VALUES (#{title}, #{messageTime}, 0, now(), now())
     </insert>
-
-    <select id="findByStatus" resultMap="messageResultMap">
-        SELECT * FROM message
-        WHERE status = #{status}
-        ORDER BY message_time DESC
-    </select>
 
     <update id="updateStatusById">
         UPDATE message
@@ -36,8 +34,7 @@
     </update>
 
     <delete id="deleteByStatus">
-        DELETE FROM message
-        WHERE status = #{status}
+        DELETE FROM message WHERE status = #{status}
     </delete>
 
 </mapper>
