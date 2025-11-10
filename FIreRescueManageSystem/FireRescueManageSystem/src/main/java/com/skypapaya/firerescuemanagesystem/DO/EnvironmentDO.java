@@ -15,6 +15,7 @@ public class EnvironmentDO {
     float risk;
     float smoke;
     float temperature;
+    String device_name;
     EnvironmentDO environmentDO;
     LocalDateTime createTime;
     LocalDateTime modifyTime;
@@ -100,13 +101,14 @@ public class EnvironmentDO {
         this.modifyTime = modifyTime;
     }
 
-    public EnvironmentDO(float co, float fire, float humidity, float risk, float smoke, float temperature) {
+    public EnvironmentDO(float co, float fire, float humidity, float risk, float smoke, float temperature,String device_name) {
         this.co = co;
         this.fire = fire;
         this.humidity = humidity;
         this.risk = risk;
         this.smoke = smoke;
         this.temperature = temperature;
+        this.device_name = device_name;
     }
 
     public EnvironmentDO() {

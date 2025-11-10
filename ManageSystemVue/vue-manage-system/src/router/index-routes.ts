@@ -1,4 +1,5 @@
-// 这是一个新文件，存放路由定义
+// 文件路径: src/router/index-routes.ts
+
 import { RouteRecordRaw } from 'vue-router';
 import Home from '../views/home.vue';
 
@@ -87,33 +88,16 @@ export const asyncRoutes: RouteRecordRaw[] = [
                         component: () => import(/* webpackChunkName: "deviceManagement" */ '../views/deviceManagement.vue'),
                     },
                     {
+                        // ⬇️ ⬇️ ⬇️ 这是修改点 ⬇️ ⬇️ ⬇️
                         path: '/management/device-monitor',
-                        name: 'deviceMonitor',
+                        name: 'deviceMonitor', // (name 保持不变)
                         meta: {
                             title: '设备实时监控',
                             roles: ['admin']
                         },
-                        redirect: '/management/device-monitor/njupt',
-                        children: [
-                            {
-                                path: '/management/device-monitor/njupt',
-                                name: 'device in NUJPT',
-                                meta: {
-                                    title: '万达茂设备监控',
-                                    roles: ['admin'],
-                                },
-                                component: () => import(/* webpackChunkName: "table" */ '../views/WanDaMao.vue'),
-                            },
-                            {
-                                path: '/management/device-monitor/nju',
-                                name: 'device in NJU',
-                                meta: {
-                                    title: '金鹰设备监控',
-                                    roles: ['admin'],
-                                },
-                                component: () => import(/* webpackChunkName: "table" */ '../views/JingYin.vue'),
-                            },
-                        ]
+                        // 直接链接到组件，不再是父路由
+                        component: () => import('../views/DeviceMonitor.vue')
+                        // ⬆️ ⬆️ ⬆️ 修改结束 ⬆️ ⬆️ ⬆️
                     }
                 ]
             },

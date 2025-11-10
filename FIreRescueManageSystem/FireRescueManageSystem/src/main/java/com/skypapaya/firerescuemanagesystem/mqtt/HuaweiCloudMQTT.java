@@ -99,7 +99,7 @@ public class HuaweiCloudMQTT {
                             System.out.println(life);
 
                             // 插入数据库
-                            EnvironmentDO environmentDO = new EnvironmentDO(co, fire, humidity, 0, smoke, temperature);
+                            EnvironmentDO environmentDO = new EnvironmentDO(co, fire, humidity, 0, smoke, temperature,"");
                             environmentDAO.insertEnvironmentDO(environmentDO);
                             VitalSignsDO vitalSignsDO = new VitalSignsDO( breathRate,heartRate,  signalStrength,  active,  distance,  exist,  life,  people);
                             vitalSignsDAO.insertVitalSignsDO(vitalSignsDO);

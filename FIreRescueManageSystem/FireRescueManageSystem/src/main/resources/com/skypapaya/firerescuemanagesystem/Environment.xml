@@ -13,17 +13,41 @@
         <result column="temperature" property="temperature"/>
         <result column="gmt_created" property="createTime"/>
         <result column="gmt_modified" property="modifyTime"/>
+        <result column="device_name" property="device_name"/>
     </resultMap>
 
-    <select id="getTheLatest" resultMap="environmentResultMap">
+    <select id="getTheLatest" resultMap="environmentResultMap" parameterType="java.lang.String">
         SELECT *
         from environment
-            ORDER BY gmt_created DESC
-                LIMIT 1,1
+        WHERE device_name = #{deviceName}
+        ORDER BY gmt_created DESC
+            LIMIT 1
     </select>
+
     <insert id="insertEnvironmentDO" parameterType="com.skypapaya.firerescuemanagesystem.DO.EnvironmentDO">
-        INSERT INTO environment (co, fire, humidity, risk, smoke, temperature, gmt_created, gmt_modified)
-        VALUES (#{co}, #{fire}, #{humidity}, #{risk}, #{smoke}, #{temperature}, now(), now())
+        INSERT INTO environment (
+            co, fire, humidity, risk, smoke, temperature,
+            gmt_created, gmt_modified, device_name
+        )
+        VALUES (
+                   #{co}, #{fire}, #{humidity}, #{risk}, #{smoke}, #{temperature},
+                   now(), now(), #{deviceName}
+               )
     </insert>
 
+    <select id="getLatestFromAllDevices" resultMap="environmentResultMap">
+        SELECT
+            d.name as device_name,
+            e.id, e.co, e.fire, e.humidity, e.risk, e.smoke, e.temperature,
+            e.gmt_created, e.gmt_modified
+        FROM
+            device d
+                LEFT JOIN LATERAL (
+                SELECT *
+                FROM environment env
+                WHERE env.device_name = d.name
+                ORDER BY env.gmt_created DESC
+                    LIMIT 1
+        ) e ON true
+    </select>
 </mapper>
