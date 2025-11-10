@@ -36,8 +36,12 @@
 
     <insert id="registerUser" parameterType="com.skypapaya.firerescuemanagesystem.DO.UserDO" useGeneratedKeys="true"
             keyProperty="id">
-        INSERT INTO user (name, password, authority, gmt_created, gmt_modified)
-        VALUES (#{name}, #{password}, 'user', now(), now())
+        INSERT INTO user (name, password, authority,
+                          age, e_mail, phone, sex, address,
+                          gmt_created, gmt_modified)
+        VALUES (#{name}, #{password}, 'user',
+                #{age}, #{eMail}, #{phone}, #{sex}, #{address},
+                now(), now())
     </insert>
 
     <select id="findByName" resultMap="userResultMap">

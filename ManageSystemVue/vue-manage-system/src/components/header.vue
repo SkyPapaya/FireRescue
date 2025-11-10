@@ -1,6 +1,5 @@
 <template>
   <div class="header">
-    <!-- 折叠按钮 -->
     <div class="collapse-btn" @click="collapseChage">
       <el-icon v-if="sidebar.collapse"><Expand /></el-icon>
       <el-icon v-else><Fold /></el-icon>
@@ -8,20 +7,17 @@
     <div class="logo">觅生者后台管理系统</div>
     <div class="header-right">
       <div class="header-user-con">
-        <!-- 消息中心 -->
         <div class="btn-bell" @click="router.push('/tabs')">
           <el-tooltip
-            effect="dark"
-            :content="message ? `有${message}条未读消息` : `消息中心`"
-            placement="bottom"
+              effect="dark"
+              :content="message ? `有${message}条未读消息` : `消息中心`"
+              placement="bottom"
           >
             <i class="el-icon-lx-notice"></i>
           </el-tooltip>
           <span class="btn-bell-badge" v-if="message"></span>
         </div>
-        <!-- 用户头像 -->
         <el-avatar class="user-avator" :size="30" :src="imgurl" />
-        <!-- 用户名下拉菜单 -->
         <el-dropdown class="user-name" trigger="click" @command="handleCommand">
           <span class="el-dropdown-link">
             {{ username }}
@@ -33,7 +29,7 @@
             <el-dropdown-menu>
               <el-dropdown-item command="user">个人中心</el-dropdown-item>
               <el-dropdown-item divided command="loginout"
-                >退出登录</el-dropdown-item
+              >退出登录</el-dropdown-item
               >
             </el-dropdown-menu>
           </template>
@@ -47,6 +43,8 @@ import { onMounted } from "vue";
 import { useSidebarStore } from "../store/sidebar";
 import { useRouter } from "vue-router";
 import imgurl from "../assets/img/img.jpg";
+// 1. 导入新的 userStore
+import { useUserStore } from "../store/userStore";
 
 const username: string | null = localStorage.getItem("ms_username");
 const message: number = 2;
@@ -63,18 +61,30 @@ onMounted(() => {
   }
 });
 
-// 用户名下拉菜单选择事件
+// 2. 获取 userStore 实例
+const userStore = useUserStore();
 const router = useRouter();
+
+// 用户名下拉菜单选择事件
 const handleCommand = (command: string) => {
   if (command == "loginout") {
-    localStorage.removeItem("ms_username");
+    // 3. 【核心改动】调用 clearAuth 清除所有登录信息
+    userStore.clearAuth();
+
+    // 4. 跳转到登录页
     router.push("/login");
+
+    // 5. 刷新页面以重置路由
+    // 这是清除动态添加的路由的最简单方法
+    window.location.reload();
+
   } else if (command == "user") {
     router.push("/user");
   }
 };
 </script>
 <style scoped>
+/* (样式保持不变) */
 .header {
   position: relative;
   box-sizing: border-box;

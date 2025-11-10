@@ -25,8 +25,6 @@
 <script setup lang="ts" name="permission">
 import { ref } from 'vue';
 import { ElTree } from 'element-plus';
-import { usePermissStore } from '../store/permiss';
-
 const role = ref<string>('admin');
 
 interface Tree {
