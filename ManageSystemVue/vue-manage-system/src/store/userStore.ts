@@ -1,12 +1,7 @@
-import { defineStore } from 'pinia';
+// 文件路径: src/store/userStore.ts
+// (请确保文件名和路径正确)
 
-// (可选) 定义 UserDO 类型，如果需要更严格的类型检查
-// interface UserDO {
-//     id: number;
-//     name: string;
-//     authority: string;
-//     // ... 其他字段
-// }
+import { defineStore } from 'pinia';
 
 export const useUserStore = defineStore('user', {
     state: () => {
@@ -15,7 +10,7 @@ export const useUserStore = defineStore('user', {
             authority: localStorage.getItem('ms_authority') || '',
 
             // 2. 存储由 router/index.ts 计算出的、该角色可以访问的路由
-            accessibleRoutes: [] as any[] // (类型 'any[]' 用于简化，稍后可改为 'RouteRecordRaw[]')
+            accessibleRoutes: [] as any[]
         };
     },
     actions: {
@@ -44,17 +39,14 @@ export const useUserStore = defineStore('user', {
             this.accessibleRoutes = [];
             localStorage.removeItem('ms_authority');
             localStorage.removeItem('ms_username');
-            // 注意: ms_keys 已经因为 permiss.ts 被删除而不再使用
         }
     },
     getters: {
         /**
          * 检查当前用户是否拥有指定角色之一
-         * (这是一个方便的辅助函数，目前暂未使用，但很有用)
          */
         hasPermission: (state) => (roles: string[]) => {
             if (state.authority) {
-                // 检查 state.authority 是否在传入的 roles 数组中
                 return roles.includes(state.authority);
             }
             return false;

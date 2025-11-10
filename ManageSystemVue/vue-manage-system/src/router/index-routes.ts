@@ -30,11 +30,7 @@ export const publicRoutes: RouteRecordRaw[] = [
         },
         component: () => import(/* webpackChunkName: "404" */ '../views/404.vue'),
     },
-    {
-        path: '/:pathMatch(.*)*', // 捕获所有未匹配的路由
-        name: 'NotFound',
-        redirect: '/404'
-    },
+
 ];
 
 /**

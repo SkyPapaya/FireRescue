@@ -38,6 +38,41 @@
           </el-input>
         </el-form-item>
 
+        <el-form-item v-if="isRegister" prop="eMail">
+          <el-input v-model="param.eMail" placeholder="邮箱 (eMail)">
+            <template #prepend><el-button :icon="Message"></el-button></template>
+          </el-input>
+        </el-form-item>
+
+        <el-form-item v-if="isRegister" prop="phone">
+          <el-input v-model="param.phone" placeholder="电话 (phone)">
+            <template #prepend><el-button :icon="Phone"></el-button></template>
+          </el-input>
+        </el-form-item>
+
+        <el-form-item v-if="isRegister" prop="sex">
+          <el-select v-model="param.sex" placeholder="请选择性别" style="width: 100%">
+            <template #prefix>
+              <el-icon class="el-input__icon"><Male /></el-icon>
+            </template>
+            <el-option key="unknown" label="未知" value="未知"></el-option>
+            <el-option key="male" label="男" value="男"></el-option>
+            <el-option key="female" label="女" value="女"></el-option>
+          </el-select>
+        </el-form-item>
+
+        <el-form-item v-if="isRegister" prop="age">
+          <el-input v-model="param.age" placeholder="年龄 (age)" type="number">
+            <template #prepend><el-button :icon="InfoFilled"></el-button></template>
+          </el-input>
+        </el-form-item>
+
+        <el-form-item v-if="isRegister" prop="address">
+          <el-input v-model="param.address" placeholder="地址 (address)">
+            <template #prepend><el-button :icon="Location"></el-button></template>
+          </el-input>
+        </el-form-item>
+
         <div class="login-btn">
           <el-button type="primary" @click="handleSubmit(loginFormRef)">
             {{ isRegister ? '注册' : '登录' }}
@@ -57,22 +92,29 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue';
 import { useTagsStore } from '../store/tags';
-// 1. 导入新的 userStore (已注释掉)
-// import { useUserStore } from '../store/userStore';
+// 1. 【导入新 Store】
+import { useUserStore } from '../store/userStore';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
-import { Lock, User } from '@element-plus/icons-vue';
 import service from '../utils/request';
+// 2. 【导入新图标】
+import { Lock, User, Message, Phone, Male, InfoFilled, Location } from '@element-plus/icons-vue';
 
 // 登录/注册状态切换
 const isRegister = ref(false);
 
 const router = useRouter();
+// 3. 【更新 param】
 const param = reactive({
   username: '',
   password: '',
   confirmPassword: '',
+  eMail: '',
+  phone: '',
+  sex: '未知', // 默认值
+  age: '',
+  address: '',
 });
 
 // 确认密码的验证器
@@ -86,6 +128,7 @@ const validatePassConfirm = (rule: any, value: any, callback: any) => {
   }
 };
 
+// 4. 【更新 rules】
 const rules = reactive<FormRules>({
   username: [
     { required: true, message: '请输入用户名', trigger: 'blur' },
@@ -97,11 +140,18 @@ const rules = reactive<FormRules>({
   confirmPassword: [
     { required: true, validator: validatePassConfirm, trigger: 'blur' }
   ],
+  eMail: [
+    { required: true, message: '请输入邮箱地址', trigger: 'blur' },
+    { message: '请输入正确的邮箱格式', trigger: ['blur', 'change'] }
+  ],
+  phone: [
+    { required: true, message: '请输入电话号码', trigger: 'blur' }
+  ],
 });
 
 const loginFormRef = ref<FormInstance>();
-// 2. 获取 userStore 实例 (已注释掉)
-// const userStore = useUserStore();
+// 5. 【使用新 Store】
+const userStore = useUserStore();
 
 // 切换登录/注册模式
 const toggleRegister = () => {
@@ -126,25 +176,22 @@ const handleSubmit = (formEl: FormInstance | undefined) => {
   });
 };
 
-// 登录逻辑
+// 6. 【新的登录逻辑】
 const submitLogin = async () => {
   try {
     const res = await service.post('/user/login', {
       name: param.username,
       password: param.password
     });
-
     if (res.code === '200') {
       ElMessage.success('登录成功');
-      const userData = res.data; // 后端返回的 UserDO
+      const userData = res.data;
 
-      // 3. 存储用户名 (用于 header 显示)
       localStorage.setItem('ms_username', userData.name);
 
-      // 4. 【核心改动】调用 userStore action (已注释掉)
-      // userStore.setAuthority(userData.authority || 'user');
+      // 【核心】调用新 Store 的 Action
+      userStore.setAuthority(userData.authority || 'user');
 
-      // 5. 跳转到首页 (此时路由守卫会介入)
       router.push('/');
     } else {
       ElMessage.error(res.message || '登录失败');
@@ -155,14 +202,19 @@ const submitLogin = async () => {
   }
 };
 
-// 注册逻辑 (保持不变)
+// 7. 【新的注册逻辑】
 const submitRegister = async () => {
   try {
     const res = await service.post('/user/register', {
       name: param.username,
-      password: param.password
+      password: param.password,
+      eMail: param.eMail,
+      phone: param.phone,
+      sex: param.sex,
+      age: param.age ? parseInt(param.age) : 0, // 确保 age 是数字
+      address: param.address
+      // authority 将由后端自动设为 'user'
     });
-
     if (res.code === '200') {
       ElMessage.success('注册成功！请登录。');
       isRegister.value = false; // 自动切换回登录界面
