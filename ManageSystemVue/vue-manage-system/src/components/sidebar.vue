@@ -90,8 +90,13 @@ const items = [
         permiss: "2",
       },
       {
+        index: "/device-management",
+        title: "设备列表管理",
+        permiss: "2",
+      },
+      {
         index: "/device",
-        title: "设备管理",
+        title: "设备实时监控",
         permiss: "2",
         subs: [
           {
