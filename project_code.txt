@@ -479,6 +479,72 @@ public class AnalyzeDataController {
 
 
 
+==================== START FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\java\com\skypapaya\firerescuemanagesystem\controller\DeviceController.java ====================
+
+package com.skypapaya.firerescuemanagesystem.controller;
+
+import com.skypapaya.firerescuemanagesystem.DAO.DeviceDAO;
+import com.skypapaya.firerescuemanagesystem.DO.DeviceDO;
+import com.skypapaya.firerescuemanagesystem.model.Result;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/device") // 我们将所有设备相关的API放在 /device 路径下
+public class DeviceController {
+
+    @Autowired
+    private DeviceDAO deviceDAO;
+
+    /**
+     * 获取所有设备列表
+     * @return Result 包含设备列表
+     */
+    @GetMapping("/all")
+    public Result getAllDevices() {
+        List<DeviceDO> devices = deviceDAO.findAllDevices();
+        return Result.success(devices);
+    }
+
+    /**
+     * 添加一个新设备
+     * @param device 从请求体中 JSON 自动转换的设备对象
+     * @return Result 包含成功/失败信息
+     */
+    @PostMapping("/add")
+    @ResponseBody
+    public Result addDevice(@RequestBody DeviceDO device) {
+        int result = deviceDAO.insertDevice(device);
+        if (result > 0) {
+            // 返回成功，并附带新插入的数据（可能包含自动生成的ID）
+            return Result.success(device);
+        } else {
+            return Result.error("500", "添加设备失败");
+        }
+    }
+
+    /**
+     * 根据ID删除一个设备
+     * @param id 从路径中获取的设备ID
+     * @return Result 包含成功/失败信息
+     */
+    @DeleteMapping("/delete/{id}")
+    public Result deleteDevice(@PathVariable Long id) {
+        int result = deviceDAO.deleteDeviceById(id);
+        if (result > 0) {
+            return Result.success("删除成功");
+        } else {
+            return Result.error("500", "删除失败，设备可能不存在");
+        }
+    }
+}
+
+==================== END FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\java\com\skypapaya\firerescuemanagesystem\controller\DeviceController.java ====================
+
+
+
 ==================== START FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\java\com\skypapaya\firerescuemanagesystem\controller\EnvironmentController.java ====================
 
 package com.skypapaya.firerescuemanagesystem.controller;
@@ -526,6 +592,195 @@ public class EnvironmentController {
 
 
 
+==================== START FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\java\com\skypapaya\firerescuemanagesystem\controller\MessageController.java ====================
+
+package com.skypapaya.firerescuemanagesystem.controller;
+
+import com.skypapaya.firerescuemanagesystem.DAO.MessageDAO;
+import com.skypapaya.firerescuemanagesystem.DO.MessageDO;
+import com.skypapaya.firerescuemanagesystem.model.Result;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/message")
+public class MessageController {
+
+    @Autowired
+    private MessageDAO messageDAO;
+
+    /**
+     * 获取所有消息，并按状态 (unread, read, recycle) 分组
+     * 这完全匹配 tabs.vue [cite: 683] 的 'state' 结构
+     */
+    @GetMapping("/all")
+    public Result getAllMessages() {
+        List<MessageDO> allMessages = messageDAO.findAll();
+
+        List<MessageDO> unread = new ArrayList<>();
+        List<MessageDO> read = new ArrayList<>();
+        List<MessageDO> recycle = new ArrayList<>();
+
+        for (MessageDO msg : allMessages) {
+            switch (msg.getStatus()) {
+                case 0: // 未读
+                    unread.add(msg);
+                    break;
+                case 1: // 已读
+                    read.add(msg);
+                    break;
+                case 2: // 回收站
+                    recycle.add(msg);
+                    break;
+            }
+        }
+
+        Map<String, List<MessageDO>> result = new HashMap<>();
+        result.put("unread", unread);
+        result.put("read", read);
+        result.put("recycle", recycle);
+
+        return Result.success(result);
+    }
+
+    /**
+     * 标为已读 (对应 handleRead [cite: 685])
+     * 0 -> 1
+     */
+    @PutMapping("/read/{id}")
+    public Result markAsRead(@PathVariable Long id) {
+        messageDAO.updateStatusById(id, 1);
+        return Result.success();
+    }
+
+    /**
+     * 删除到回收站 (对应 handleDel [cite: 686])
+     * 1 -> 2
+     */
+    @PutMapping("/recycle/{id}")
+    public Result moveToRecycle(@PathVariable Long id) {
+        messageDAO.updateStatusById(id, 2);
+        return Result.success();
+    }
+
+    /**
+     * 从回收站还原 (对应 handleRestore [cite: 687])
+     * 2 -> 1
+     */
+    @PutMapping("/restore/{id}")
+    public Result restoreFromRecycle(@PathVariable Long id) {
+        messageDAO.updateStatusById(id, 1);
+        return Result.success();
+    }
+
+    /**
+     * 全部标为已读 (对应 "全部标为已读" 按钮 [cite: 676-677])
+     * 0 -> 1
+     */
+    @PutMapping("/read-all")
+    public Result markAllAsRead() {
+        messageDAO.updateAllStatus(0, 1);
+        return Result.success();
+    }
+
+    /**
+     * 删除全部已读 (对应 "删除全部" 按钮 [cite: 679])
+     * 1 -> 2
+     */
+    @PutMapping("/recycle-all-read")
+    public Result moveAllReadToRecycle() {
+        messageDAO.updateAllStatus(1, 2);
+        return Result.success();
+    }
+
+    /**
+     * 清空回收站 (对应 "清空回收站" 按钮 [cite: 681-682])
+     * 2 -> (DELETE)
+     */
+    @DeleteMapping("/recycle-bin")
+    public Result emptyRecycleBin() {
+        messageDAO.deleteByStatus(2);
+        return Result.success();
+    }
+}
+
+==================== END FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\java\com\skypapaya\firerescuemanagesystem\controller\MessageController.java ====================
+
+
+
+==================== START FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\java\com\skypapaya\firerescuemanagesystem\controller\TodoController.java ====================
+
+package com.skypapaya.firerescuemanagesystem.controller;
+
+import com.skypapaya.firerescuemanagesystem.DAO.TodoDAO;
+import com.skypapaya.firerescuemanagesystem.DO.TodoDO;
+import com.skypapaya.firerescuemanagesystem.model.Result;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/todo")
+public class TodoController {
+
+    @Autowired
+    private TodoDAO todoDAO;
+
+    // 1. 获取所有待办事项
+    @GetMapping("/all")
+    public Result getAllTodos() {
+        List<TodoDO> todos = todoDAO.findAll();
+        return Result.success(todos);
+    }
+
+    // 2. 添加新事项
+    @PostMapping("/add")
+    public Result addTodo(@RequestBody TodoDO todo) {
+        // 默认状态为 false (未完成)
+        todo.setStatus(false);
+        todoDAO.insertTodo(todo);
+        return Result.success(todo); // 返回带 ID 的对象
+    }
+
+    // 3. 更新事项状态 (checkbox)
+    @PutMapping("/update")
+    public Result updateTodoStatus(@RequestBody TodoDO todo) {
+        todoDAO.updateTodoStatus(todo);
+        return Result.success();
+    }
+
+    // 4. 删除单个事项 (X)
+    @DeleteMapping("/delete/{id}")
+    public Result deleteTodo(@PathVariable Long id) {
+        todoDAO.deleteTodo(id);
+        return Result.success();
+    }
+
+    // 5. 全部完成
+    @PutMapping("/completeAll")
+    public Result completeAll() {
+        todoDAO.updateAllStatus(true); // true = 完成
+        return Result.success();
+    }
+
+    // 6. 删除所有
+    @DeleteMapping("/deleteAll")
+    public Result deleteAll() {
+        todoDAO.deleteAll();
+        return Result.success();
+    }
+}
+
+==================== END FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\java\com\skypapaya\firerescuemanagesystem\controller\TodoController.java ====================
+
+
+
 ==================== START FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\java\com\skypapaya\firerescuemanagesystem\controller\UserController.java ====================
 
 package com.skypapaya.firerescuemanagesystem.controller;
@@ -539,7 +794,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 
 @RestController
 @RequestMapping("/user")
@@ -620,18 +874,6 @@ public class UserController {
         return Result.success(res);
     }
 
-    //新增用户
-    @PutMapping("/updateUser")
-    @ResponseBody
-    public Result updateUser(@RequestBody UserDO user) {
-        // gmtModified 会在 SQL 语句中自动更新
-        int result = userDAO.updateUser(user);
-        if (result > 0) {
-            return Result.success(user);
-        } else {
-            return Result.error("500", "更新失败");
-        }
-    }
 
 }
 
@@ -700,6 +942,46 @@ public interface AnalyzeDataDAO {
 
 
 
+==================== START FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\java\com\skypapaya\firerescuemanagesystem\DAO\DeviceDAO.java ====================
+
+package com.skypapaya.firerescuemanagesystem.DAO;
+
+import com.skypapaya.firerescuemanagesystem.DO.DeviceDO;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Mapper
+@Repository
+public interface DeviceDAO {
+
+    /**
+     * 查询所有设备
+     * @return 设备列表
+     */
+    List<DeviceDO> findAllDevices();
+
+    /**
+     * 插入一个新设备
+     * @param device 设备对象
+     * @return 影响的行数
+     */
+    int insertDevice(DeviceDO device);
+
+    /**
+     * 根据ID删除设备
+     * @param id 设备ID
+     * @return 影响的行数
+     */
+    int deleteDeviceById(@Param("id") Long id);
+}
+
+==================== END FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\java\com\skypapaya\firerescuemanagesystem\DAO\DeviceDAO.java ====================
+
+
+
 ==================== START FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\java\com\skypapaya\firerescuemanagesystem\DAO\EnvironmentDAO.java ====================
 
 package com.skypapaya.firerescuemanagesystem.DAO;
@@ -728,6 +1010,91 @@ public interface EnvironmentDAO {
 
 
 
+==================== START FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\java\com\skypapaya\firerescuemanagesystem\DAO\MessageDAO.java ====================
+
+package com.skypapaya.firerescuemanagesystem.DAO;
+
+import com.skypapaya.firerescuemanagesystem.DO.MessageDO;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Mapper
+@Repository
+public interface MessageDAO {
+
+    /**
+     * 查询所有消息
+     */
+    List<MessageDO> findAll();
+
+    /**
+     * (可选) 插入新消息
+     */
+    int insertMessage(MessageDO message);
+
+    /**
+     * 根据ID更新单个消息的状态
+     * (用于: 标为已读、删除到回收站、还原)
+     */
+    int updateStatusById(@Param("id") Long id, @Param("status") int status);
+
+    /**
+     * 批量更新状态
+     * (用于: 全部标为已读、删除全部)
+     */
+    int updateAllStatus(@Param("fromStatus") int fromStatus, @Param("toStatus") int toStatus);
+
+    /**
+     * 按状态删除
+     * (用于: 清空回收站)
+     */
+    int deleteByStatus(@Param("status") int status);
+}
+
+==================== END FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\java\com\skypapaya\firerescuemanagesystem\DAO\MessageDAO.java ====================
+
+
+
+==================== START FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\java\com\skypapaya\firerescuemanagesystem\DAO\TodoDAO.java ====================
+
+package com.skypapaya.firerescuemanagesystem.DAO;
+
+import com.skypapaya.firerescuemanagesystem.DO.TodoDO;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Mapper
+@Repository
+public interface TodoDAO {
+    // 1. 查询所有待办事项
+    List<TodoDO> findAll();
+
+    // 2. 新增一个待办事项
+    int insertTodo(TodoDO todo);
+
+    // 3. 更新一个待办事项的状态
+    int updateTodoStatus(TodoDO todo);
+
+    // 4. 删除一个待办事项
+    int deleteTodo(@Param("id") Long id);
+
+    // 5. 更新所有事项的状态 (全部完成)
+    int updateAllStatus(@Param("status") Boolean status);
+
+    // 6. 删除所有事项 (清空)
+    int deleteAll();
+}
+
+==================== END FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\java\com\skypapaya\firerescuemanagesystem\DAO\TodoDAO.java ====================
+
+
+
 ==================== START FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\java\com\skypapaya\firerescuemanagesystem\DAO\UserDAO.java ====================
 
 package com.skypapaya.firerescuemanagesystem.DAO;
@@ -743,8 +1110,6 @@ public interface UserDAO {
     public List<UserDO> findAll();
 
     int insertUser(UserDO user);
-
-    int updateUser(UserDO user);
 
     int delete(@Param("id") Long id);
 
@@ -844,6 +1209,30 @@ public class AnalyzeDataDO {
 
 
 ==================== END FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\java\com\skypapaya\firerescuemanagesystem\DO\AnalyzeDataDO.java ====================
+
+
+
+==================== START FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\java\com\skypapaya\firerescuemanagesystem\DO\DeviceDO.java ====================
+
+package com.skypapaya.firerescuemanagesystem.DO;
+
+import lombok.Data;
+import java.time.LocalDateTime;
+
+@Data
+public class DeviceDO {
+
+    private Long id;
+    private String name;
+    private String location;
+    private String status;
+    private LocalDateTime gmtCreated;
+    private LocalDateTime gmtModified;
+
+    // Lombok 的 @Data 会自动生成 getters, setters, toString, equals, 和 hashCode
+}
+
+==================== END FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\java\com\skypapaya\firerescuemanagesystem\DO\DeviceDO.java ====================
 
 
 
@@ -968,6 +1357,54 @@ public class EnvironmentDO {
 
 
 ==================== END FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\java\com\skypapaya\firerescuemanagesystem\DO\EnvironmentDO.java ====================
+
+
+
+==================== START FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\java\com\skypapaya\firerescuemanagesystem\DO\MessageDO.java ====================
+
+package com.skypapaya.firerescuemanagesystem.DO;
+
+import lombok.Data;
+import java.time.LocalDateTime;
+
+@Data
+public class MessageDO {
+
+    private Long id;
+    private String title;
+
+    // 对应数据库的 message_time
+    private LocalDateTime messageTime;
+
+    // 对应 TINYINT, 0=未读, 1=已读, 2=回收站
+    private Integer status;
+
+    private LocalDateTime gmtCreated;
+    private LocalDateTime gmtModified;
+}
+
+==================== END FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\java\com\skypapaya\firerescuemanagesystem\DO\MessageDO.java ====================
+
+
+
+==================== START FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\java\com\skypapaya\firerescuemanagesystem\DO\TodoDO.java ====================
+
+package com.skypapaya.firerescuemanagesystem.DO;
+
+import lombok.Data;
+import java.time.LocalDateTime;
+
+@Data
+public class TodoDO {
+    private Long id;
+    private String title;
+    private Boolean status;
+    private LocalDateTime gmtCreated;
+    private LocalDateTime gmtModified;
+}
+
+
+==================== END FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\java\com\skypapaya\firerescuemanagesystem\DO\TodoDO.java ====================
 
 
 
@@ -1578,6 +2015,41 @@ mybatis.mapper-locations=classpath:com/skypapaya/firerescuemanagesystem/*.xml,cl
 
 
 
+==================== START FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\resources\com\skypapaya\firerescuemanagesystem\Device.xml ====================
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skypapaya.firerescuemanagesystem.DAO.DeviceDAO">
+
+    <resultMap id="deviceResultMap" type="com.skypapaya.firerescuemanagesystem.DO.DeviceDO">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="location" property="location"/>
+        <result column="status" property="status"/>
+        <result column="gmt_created" property="gmtCreated"/>
+        <result column="gmt_modified" property="gmtModified"/>
+    </resultMap>
+
+    <select id="findAllDevices" resultMap="deviceResultMap">
+        SELECT * FROM device ORDER BY gmt_created DESC
+    </select>
+
+    <insert id="insertDevice" parameterType="com.skypapaya.firerescuemanagesystem.DO.DeviceDO" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO device (name, location, status, gmt_created, gmt_modified)
+        VALUES (#{name}, #{location}, #{status}, now(), now())
+    </insert>
+
+    <delete id="deleteDeviceById">
+        DELETE FROM device WHERE id = #{id}
+    </delete>
+
+</mapper>
+
+==================== END FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\resources\com\skypapaya\firerescuemanagesystem\Device.xml ====================
+
+
+
 ==================== START FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\resources\com\skypapaya\firerescuemanagesystem\Environment.xml ====================
 
 <?xml version="1.0" encoding="UTF-8"?>
@@ -1611,6 +2083,104 @@ mybatis.mapper-locations=classpath:com/skypapaya/firerescuemanagesystem/*.xml,cl
 </mapper>
 
 ==================== END FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\resources\com\skypapaya\firerescuemanagesystem\Environment.xml ====================
+
+
+
+==================== START FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\resources\com\skypapaya\firerescuemanagesystem\Message.xml ====================
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skypapaya.firerescuemanagesystem.DAO.MessageDAO">
+
+    <resultMap id="messageResultMap" type="com.skypapaya.firerescuemanagesystem.DO.MessageDO">
+        <id column="id" property="id"/>
+        <result column="title" property="title"/>
+        <result column="message_time" property="messageTime"/>
+        <result column="status" property="status"/>
+        <result column="gmt_created" property="gmtCreated"/>
+        <result column="gmt_modified" property="gmtModified"/>
+    </resultMap>
+
+    <select id="findAll" resultMap="messageResultMap">
+        SELECT * FROM message ORDER BY message_time DESC
+    </select>
+
+    <insert id="insertMessage" parameterType="com.skypapaya.firerescuemanagesystem.DO.MessageDO">
+        INSERT INTO message (title, message_time, status, gmt_created, gmt_modified)
+        VALUES (#{title}, #{messageTime}, 0, now(), now())
+    </insert>
+
+    <update id="updateStatusById">
+        UPDATE message
+        SET status = #{status}, gmt_modified = now()
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateAllStatus">
+        UPDATE message
+        SET status = #{toStatus}, gmt_modified = now()
+        WHERE status = #{fromStatus}
+    </update>
+
+    <delete id="deleteByStatus">
+        DELETE FROM message WHERE status = #{status}
+    </delete>
+
+</mapper>
+
+==================== END FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\resources\com\skypapaya\firerescuemanagesystem\Message.xml ====================
+
+
+
+==================== START FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\resources\com\skypapaya\firerescuemanagesystem\Todo.xml ====================
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skypapaya.firerescuemanagesystem.DAO.TodoDAO">
+
+    <resultMap id="todoResultMap" type="com.skypapaya.firerescuemanagesystem.DO.TodoDO">
+        <id column="id" property="id"/>
+        <result column="title" property="title"/>
+        <result column="status" property="status"/>
+        <result column="gmt_created" property="gmtCreated"/>
+        <result column="gmt_modified" property="gmtModified"/>
+    </resultMap>
+
+    <select id="findAll" resultMap="todoResultMap">
+        SELECT * FROM todo ORDER BY gmt_created DESC
+    </select>
+
+    <insert id="insertTodo" parameterType="com.skypapaya.firerescuemanagesystem.DO.TodoDO"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO todo (title, status, gmt_created, gmt_modified)
+        VALUES (#{title}, #{status}, now(), now())
+    </insert>
+
+    <update id="updateTodoStatus" parameterType="com.skypapaya.firerescuemanagesystem.DO.TodoDO">
+        UPDATE todo
+        SET status = #{status}, gmt_modified = now()
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteTodo">
+        DELETE FROM todo WHERE id = #{id}
+    </delete>
+
+    <update id="updateAllStatus">
+        UPDATE todo
+        SET status = #{status}, gmt_modified = now()
+        WHERE status != #{status}
+    </update>
+
+    <delete id="deleteAll">
+        TRUNCATE TABLE todo
+    </delete>
+
+</mapper>
+
+==================== END FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\resources\com\skypapaya\firerescuemanagesystem\Todo.xml ====================
 
 
 
@@ -1839,13 +2409,12 @@ declare module '@vue/runtime-core' {
     ElIcon: typeof import('element-plus/es')['ElIcon']
     ElImage: typeof import('element-plus/es')['ElImage']
     ElInput: typeof import('element-plus/es')['ElInput']
+    ElLink: typeof import('element-plus/es')['ElLink']
     ElMenu: typeof import('element-plus/es')['ElMenu']
     ElMenuItem: typeof import('element-plus/es')['ElMenuItem']
-    ElOption: typeof import('element-plus/es')['ElOption']
     ElPagination: typeof import('element-plus/es')['ElPagination']
     ElProgress: typeof import('element-plus/es')['ElProgress']
     ElRow: typeof import('element-plus/es')['ElRow']
-    ElSelect: typeof import('element-plus/es')['ElSelect']
     ElSubMenu: typeof import('element-plus/es')['ElSubMenu']
     ElTable: typeof import('element-plus/es')['ElTable']
     ElTableColumn: typeof import('element-plus/es')['ElTableColumn']
@@ -3693,8 +4262,13 @@ const items = [
         permiss: "2",
       },
       {
+        index: "/device-management",
+        title: "设备列表管理",
+        permiss: "2",
+      },
+      {
         index: "/device",
-        title: "设备管理",
+        title: "设备实时监控",
         permiss: "2",
         subs: [
           {
@@ -4874,6 +5448,14 @@ const click3 = () => {
 
 ==================== START FILE: ManageSystemVue\vue-manage-system\src\views\dashboard.vue ====================
 
+<!--
+待办的添加与删除
+@member: ljx
+-->
+
+<!--
+ljx:使用新的template，替换旧的template
+
 <template>
   <div>
     <el-row :gutter="20">
@@ -5010,6 +5592,180 @@ const click3 = () => {
     </el-row>
   </div>
 </template>
+-->
+<template>
+  <div>
+    <el-row :gutter="20">
+      <el-col :span="8">
+        <el-card shadow="hover" class="mgb20" style="height: 252px">
+          <div class="user-info">
+            <el-avatar :size="120" :src="imgurl"/>
+            <div class="user-info-cont">
+              <div class="user-info-name">{{ name }}</div>
+              <div>{{ role }}</div>
+            </div>
+          </div>
+          <div class="user-info-list">
+            上次登录时间：
+            <span>2024-10-01</span>
+          </div>
+          <div class="user-info-list">
+            上次登录地点：
+            <span>南京</span>
+          </div>
+        </el-card>
+        <el-card shadow="hover" style="height: 252px">
+          <template #header>
+            <div class="clearfix">
+              <span>火灾类型详细</span>
+            </div>
+          </template>
+          厨房
+          <el-progress :percentage="79.4" color="#42b983"></el-progress>
+          电器
+          <el-progress :percentage="14" color="#f1e05a"></el-progress>
+          粉尘
+          <el-progress :percentage="5.6"></el-progress>
+          气体
+          <el-progress :percentage="1" color="#f56c6c"></el-progress>
+        </el-card>
+      </el-col>
+      <el-col :span="16">
+        <el-row :gutter="20" class="mgb20">
+          <el-col :span="8">
+            <el-card shadow="hover" :body-style="{ padding: '0px' }">
+              <div class="grid-content grid-con-1">
+                <el-icon class="grid-con-icon">
+                  <User/>
+                </el-icon>
+                <div class="grid-cont-right">
+                  <div class="grid-num">1234</div>
+                  <div>用户访问量</div>
+                </div>
+              </div>
+            </el-card>
+          </el-col>
+          <el-col :span="8">
+            <el-card shadow="hover" :body-style="{ padding: '0px' }">
+              <div class="grid-content grid-con-2">
+                <el-icon class="grid-con-icon">
+                  <ChatDotRound/>
+                </el-icon>
+                <div class="grid-cont-right">
+                  <div class="grid-num">321</div>
+                  <div>系统消息</div>
+                </div>
+              </div>
+            </el-card>
+          </el-col>
+          <el-col :span="8">
+            <el-card shadow="hover" :body-style="{ padding: '0px' }">
+              <div class="grid-content grid-con-3">
+                <el-icon class="grid-con-icon">
+                  <Goods/>
+                </el-icon>
+                <div class="grid-cont-right">
+                  <div class="grid-num">5000</div>
+                  <div>火灾发生数量</div>
+                </div>
+              </div>
+            </el-card>
+          </el-col>
+        </el-row>
+        
+        <el-card shadow="hover">
+          <template #header>
+            <div class="clearfix">
+              <span>待办事项</span>
+              <el-button style="float: right; padding: 3px 0" text @click="handleAdd">
+                添加
+              </el-button>
+            </div>
+          </template>
+
+          <div class="todo-list-wrapper">
+            <el-table :show-header="false" :data="todoList" style="width: 100%">
+              
+              <el-table-column width="40">
+                <template #default="scope">
+                  <el-checkbox 
+                    v-model="scope.row.status" 
+                    @change="handleStatusChange(scope.row)"
+                  ></el-checkbox>
+                </template>
+              </el-table-column>
+
+              <el-table-column>
+                <template #default="scope">
+                  <div class="todo-item-wrapper">
+                      <div
+                          class="todo-item"
+                          :class="{'todo-item-del': scope.row.status}"
+                      >
+                        {{ scope.row.title }}
+                      </div>
+                      <el-icon class="todo-delete-icon" @click="handleDelete(scope.row)">
+                          <Close />
+                      </el-icon>
+                  </div>
+                </template>
+              </el-table-column>
+              
+            </el-table>
+
+            <div class="todo-buttons">
+              <el-button type="success" size="small" @click="handleCompleteAll">全部完成</el-button>
+              <el-button type="danger" size="small" @click="handleDeleteAll">删除所有</el-button>
+            </div>
+          </div>
+          
+        </el-card>
+      </el-col>
+    </el-row>
+    <el-row :gutter="20">
+      <el-col :span="12">
+        <el-card shadow="hover">
+          <schart
+              ref="bar"
+              class="schart"
+              canvasId="bar"
+              :options="options"
+          ></schart>
+        </el-card>
+      </el-col>
+      <el-col :span="12">
+        <el-card shadow="hover">
+          <schart
+              ref="line"
+              class="schart"
+              canvasId="line"
+              :options="options2"
+          ></schart>
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <el-dialog v-model="dialogVisible" title="添加待办事项" width="30%">
+      <el-input
+          v-model="newTodoTitle"
+          placeholder="请输入待办事项..."
+          @keyup.enter="handleAddItem"
+      />
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="dialogVisible = false">取 消</el-button>
+          <el-button type="primary" @click="handleAddItem">
+            确 定
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
+    
+  </div>
+</template>
+
+<!--
+ljx:使用新的script，替换下面旧的script
 
 <script setup lang="ts" name="dashboard">
 import Schart from "vue-schart";
@@ -5085,8 +5841,321 @@ const todoList = reactive([
   },
 ]);
 </script>
+-->
+<script setup lang="ts" name="dashboard">
+import Schart from "vue-schart";
+// 1. 导入 onMounted 用于页面加载时获取数据
+import { reactive, ref, onMounted } from "vue"; 
+import { ElMessage, ElMessageBox } from "element-plus";
+import imgurl from "../assets/img/img.jpg";
+// 2. 导入 service (axios)
+import service from "../utils/request"; 
+
+const name = localStorage.getItem("ms_username");
+const role: string = name === "admin" ? "超级管理员" : "普通用户";
+
+// ... (省略了 options 和 options2 的图表配置, 保持不变) ...
+const options = {
+  type: 'bar',
+  title: {
+    text: '造成火灾的原因'
+  },
+  bgColor: '#fbfbfb',
+  labels: ['一季度', '二季度', '三季度', '四季度'],
+  datasets: [
+    {
+      label: '电瓶车',
+      fillColor: 'rgba(241, 49, 74, 0.5)',
+      data: [234, 278, 270, 190, 230]
+    },
+    {
+      label: '电器',
+      data: [164, 178, 190, 135, 160]
+    },
+    {
+      label: '粉尘',
+      data: [144, 198, 150, 235, 120]
+    }
+  ]
+};
+const options2 = {
+  type: 'line',
+  title: {
+    text: '火灾造成的经济损失'
+  },
+  bgColor: '#fbfbfb',
+  labels: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+  datasets: [
+    {
+      label: '直接经济损失',
+      data: [234, 278, 270, 190, 230, 550, 150, 592, 150, 589, 151, 111, 125]
+    },
+    {
+      label: '间接经济损失',
+      data: [164, 178, 190, 135, 160, 148, 11, 125, 114, 116, 31, 55]
+    }
+
+  ]
+};
+
+// 3. 将 todoList 从 reactive 改为 ref()
+const todoList = ref([]); // 初始为空数组
+
+// 4. 新增：从后端加载数据的函数
+const loadTodos = async () => {
+    try {
+        const res = await service.get('/todo/all');
+        if (res.code === '200') {
+            todoList.value = res.data;
+        } else {
+            ElMessage.error(res.message || '加载待办事项失败');
+        }
+    } catch (e) {
+        ElMessage.error('网络请求失败');
+    }
+};
+
+// 5. 新增：在组件挂载时调用加载函数
+onMounted(() => {
+    loadTodos();
+});
+
+
+// --- "添加"功能逻辑 (已修改) ---
+const dialogVisible = ref(false);
+const newTodoTitle = ref('');
+const handleAdd = () => {
+    newTodoTitle.value = ''; 
+    dialogVisible.value = true;
+};
+const handleAddItem = async () => {
+    if (!newTodoTitle.value) {
+        ElMessage.warning('请输入待办事项内容');
+        return;
+    }
+    try {
+        // 6. 调用后端 "add" API
+        const res = await service.post('/todo/add', { title: newTodoTitle.value });
+        if (res.code === '200') {
+            // 7. 成功后, 重新加载列表 (而不是本地 unshift)
+            await loadTodos(); 
+            ElMessage.success('添加成功');
+        } else {
+            ElMessage.error(res.message || '添加失败');
+        }
+        dialogVisible.value = false;
+    } catch (e) {
+        ElMessage.error('添加失败');
+    }
+};
+
+
+// --- "删除"和"清空"功能逻辑 (已修改) ---
+
+// 8. 新增：处理 Checkbox 状态变更
+// (需要在 template 的 el-checkbox 上添加 @change="handleStatusChange(scope.row)")
+const handleStatusChange = async (row) => {
+    try {
+        // 立即调用API更新状态
+        await service.put('/todo/update', { id: row.id, status: row.status });
+    } catch (e) {
+        ElMessage.error('更新状态失败');
+        // 失败时回滚本地状态
+        row.status = !row.status;
+    }
+};
+
+// 9. 修改：删除单个待办事项
+// (需要在 template 的删除图标上修改为 @click="handleDelete(scope.row)")
+const handleDelete = async (row) => {
+    try {
+        // 10. 调用后端 "delete" API
+        await service.delete(`/todo/delete/${row.id}`);
+        // 11. 成功后, 重新加载列表 (而不是本地 splice)
+        await loadTodos();
+        ElMessage.success('删除成功');
+    } catch (e) {
+        ElMessage.error('删除失败');
+    }
+};
+
+// 12. 修改：全部完成
+const handleCompleteAll = async () => {
+    try {
+        await service.put('/todo/completeAll');
+        await loadTodos(); // 重新加载
+    } catch (e) {
+        ElMessage.error('操作失败');
+    }
+};
+
+// 13. 修改：删除所有
+const handleDeleteAll = () => {
+    ElMessageBox.confirm(
+        '你确定要删除所有待办事项吗？此操作不可恢复。',
+        '警告',
+        {
+          confirmButtonText: '确定删除',
+          cancelButtonText: '取消',
+          type: 'warning',
+        }
+    )
+    .then(async () => {
+        try {
+            // 14. 调用后端 "deleteAll" API
+            await service.delete('/todo/deleteAll');
+            await loadTodos(); // 重新加载
+            ElMessage.success('已删除所有待办事项');
+        } catch (e) {
+            ElMessage.error('清空失败');
+        }
+    })
+    .catch(() => {
+        ElMessage.info('已取消删除');
+    });
+};
+</script>
+
+<!--
+ljx:使用新的style，替换旧的style
 
 <style scoped>
+.el-row {
+  margin-bottom: 20px;
+}
+
+.grid-content {
+  display: flex;
+  align-items: center;
+  height: 100px;
+}
+
+.grid-cont-right {
+  flex: 1;
+  text-align: center;
+  font-size: 14px;
+  color: #999;
+}
+
+.grid-num {
+  font-size: 30px;
+  font-weight: bold;
+}
+
+.grid-con-icon {
+  font-size: 50px;
+  width: 100px;
+  height: 100px;
+  text-align: center;
+  line-height: 100px;
+  color: #fff;
+}
+
+.grid-con-1 .grid-con-icon {
+  background: rgb(45, 140, 240);
+}
+
+.grid-con-1 .grid-num {
+  color: rgb(45, 140, 240);
+}
+
+.grid-con-2 .grid-con-icon {
+  background: rgb(100, 213, 114);
+}
+
+.grid-con-2 .grid-num {
+  color: rgb(100, 213, 114);
+}
+
+.grid-con-3 .grid-con-icon {
+  background: rgb(242, 94, 67);
+}
+
+.grid-con-3 .grid-num {
+  color: rgb(242, 94, 67);
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #ccc;
+  margin-bottom: 20px;
+}
+
+.user-info-cont {
+  padding-left: 50px;
+  flex: 1;
+  font-size: 14px;
+  color: #999;
+}
+
+.user-info-cont div:first-child {
+  font-size: 30px;
+  color: #222;
+}
+
+.user-info-list {
+  font-size: 14px;
+  color: #999;
+  line-height: 25px;
+}
+
+.user-info-list span {
+  margin-left: 70px;
+}
+
+.mgb20 {
+  margin-bottom: 20px;
+}
+
+.todo-item {
+  font-size: 14px;
+}
+
+.todo-item-del {
+  text-decoration: line-through;
+  color: #999;
+}
+
+.schart {
+  width: 100%;
+  height: 300px;
+}
+</style>
+-->
+<style scoped>
+.todo-list-wrapper {
+  /* 这个高度是估算的卡片body区域高度。
+    你可以根据需要调整 280px 这个值。
+  */
+  height: 280px; 
+  overflow-y: auto; /* 当内容超出高度时，显示Y轴滚动条 */
+}
+
+.todo-item-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.todo-delete-icon {
+  cursor: pointer;
+  color: #f56c6c;
+  display: none; /* 默认隐藏 */
+}
+
+.todo-item-wrapper:hover .todo-delete-icon {
+  display: block;
+}
+
+.todo-buttons {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 .el-row {
   margin-bottom: 20px;
 }
@@ -5646,6 +6715,62 @@ const handleCurrentChange = (val) => {
 
 ==================== START FILE: ManageSystemVue\vue-manage-system\src\views\login.vue ====================
 
+<template>
+  <div class="login-wrap">
+    <div class="ms-login">
+      <div class="ms-title">{{ isRegister ? '注册新用户' : '后台管理系统' }}</div>
+      <el-form :model="param" :rules="rules" ref="loginFormRef" label-width="0px" class="ms-content">
+
+        <el-form-item prop="username">
+          <el-input v-model="param.username" placeholder="用户名">
+            <template #prepend>
+              <el-button :icon="User"></el-button>
+            </template>
+          </el-input>
+        </el-form-item>
+
+        <el-form-item prop="password">
+          <el-input
+              type="password"
+              placeholder="密码"
+              v-model="param.password"
+              @keyup.enter="handleSubmit(loginFormRef)"
+          >
+            <template #prepend>
+              <el-button :icon="Lock"></el-button>
+            </template>
+          </el-input>
+        </el-form-item>
+
+        <el-form-item v-if="isRegister" prop="confirmPassword">
+          <el-input
+              type="password"
+              placeholder="确认密码"
+              v-model="param.confirmPassword"
+              @keyup.enter="handleSubmit(loginFormRef)"
+          >
+            <template #prepend>
+              <el-button :icon="Lock"></el-button>
+            </template>
+          </el-input>
+        </el-form-item>
+
+        <div class="login-btn">
+          <el-button type="primary" @click="handleSubmit(loginFormRef)">
+            {{ isRegister ? '注册' : '登录' }}
+          </el-button>
+        </div>
+
+        <div class="login-tips-right">
+          <el-link type="primary" @click="toggleRegister">
+            {{ isRegister ? '已有账户？去登录' : '没有账户？去注册' }}
+          </el-link>
+        </div>
+      </el-form>
+    </div>
+  </div>
+</template>
+
 <script setup lang="ts">
 import { ref, reactive } from 'vue';
 import { useTagsStore } from '../store/tags';
@@ -5654,7 +6779,8 @@ import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
 import { Lock, User } from '@element-plus/icons-vue';
-import service from '../utils/request'; // ========== 1. 在这里导入 service ==========
+import service from '../utils/request';
+// ========== 1. 在这里导入 service ==========
 
 // 登录/注册状态切换
 const isRegister = ref(false);
@@ -5665,7 +6791,6 @@ const param = reactive({
   password: '',
   confirmPassword: '',
 });
-
 // 确认密码的验证器
 const validatePassConfirm = (rule: any, value: any, callback: any) => {
   if (value === '') {
@@ -5676,7 +6801,6 @@ const validatePassConfirm = (rule: any, value: any, callback: any) => {
     callback();
   }
 };
-
 const rules = reactive<FormRules>({
   username: [
     { required: true, message: '请输入用户名', trigger: 'blur' },
@@ -5689,7 +6813,6 @@ const rules = reactive<FormRules>({
     { required: true, validator: validatePassConfirm, trigger: 'blur' }
   ],
 });
-
 const loginFormRef = ref<FormInstance>();
 const permiss = usePermissStore();
 
@@ -5724,7 +6847,6 @@ const submitLogin = async () => {
       name: param.username,
       password: param.password
     });
-
     // 2. 检查后端返回
     if (res.code === '200') {
       ElMessage.success('登录成功');
@@ -5732,7 +6854,6 @@ const submitLogin = async () => {
 
       // 3. 存储用户名
       localStorage.setItem('ms_username', userData.name);
-
       // 4. 【重要】根据后端返回的 authority 设置权限
       //    我们从 res.data.authority 获取权限
       //    并映射到 permiss.defaultList 中
@@ -5744,7 +6865,6 @@ const submitLogin = async () => {
       const keys = permiss.defaultList[userRole];
       permiss.handleSet(keys);
       localStorage.setItem('ms_keys', JSON.stringify(keys));
-
       // 5. 跳转到首页
       router.push('/');
 
@@ -5757,7 +6877,6 @@ const submitLogin = async () => {
     ElMessage.error('登录请求失败，请检查后端服务。');
   }
 };
-
 // ========== 2. 替换为这个新的 submitRegister 函数 ==========
 const submitRegister = async () => {
   try {
@@ -5767,7 +6886,6 @@ const submitRegister = async () => {
       password: param.password
       // 注意：我们发送的是 name 和 password，对应 UserDO.java
     });
-
     if (res.code === '200') {
       ElMessage.success('注册成功！请登录。');
       isRegister.value = false; // 自动切换回登录界面
@@ -6195,7 +7313,7 @@ const handleChange = (val: string[]) => {
         ></el-table-column>
 
         <el-table-column
-            prop="createdTime"
+            prop="gmtCreated"
             label="注册时间"
             align="center"
         ></el-table-column>
@@ -6271,36 +7389,6 @@ import TableDetail from '../components/table-detail.vue';
 import service from '../utils/request';
 
 
-// 模拟API返回数据
-const fetchData = async () => {
-  // 模拟数据
-  return {
-    data: {
-      list: [
-        {
-          id: 1,
-          name: "John Doe (模拟)",
-          e_mail: "john@example.com",
-          phone: "1234567890",
-          authority: "用户",
-          address: "123 Main St",
-          createdTime: "2024-04-05",
-        },
-        {
-          id: 2,
-          name: "Jane Smith (模拟)",
-          e_mail: "jane@example.com",
-          phone: "0987654321",
-          authority: "管理员",
-          address: "456 Elm St",
-          createdTime: "2024-04-06",
-        },
-      ],
-      pageTotal: 50, // 假设总共有50条数据
-    },
-  };
-};
-
 interface TableItem {
   id: number;
   name: string;
@@ -6308,7 +7396,7 @@ interface TableItem {
   phone: string;
   authority: number; // 确保类型匹配
   address: string;
-  createdTime: string;
+  gmtCreated: string; // 确保这个字段名和后端返回的一致
 }
 
 const query = reactive({
@@ -6320,27 +7408,38 @@ const query = reactive({
 
 const tableData = ref<TableItem[]>([]);
 const pageTotal = ref(0);
+const visible = ref(false);
+let idx: number = -1;
+const idEdit = ref(false);
+const rowData = ref<TableItem>();
+const visible1 = ref(false);
 
-// 从后端获取数据的函数
+
+// ========== 这是唯一且正确的 getData 函数 ==========
 const getData = async () => {
-  // 注意：你的后端 /user/users 接口没有实现分页
-  // 我们暂时先用模拟数据，并调用 /user/users 来演示
+  try {
+    // 请求后端的 /user/userPage 接口，并传入分页参数
+    const res = await service.get('/user/userPage', {
+      params: {
+        pageNum: query.pageIndex,
+        size: query.pageSize
+      }
+    });
 
-  // 1. 使用模拟数据填充
-  const res = await fetchData();
-  tableData.value = res.data.list;
-  pageTotal.value = res.data.pageTotal || 50;
-
-  // 2. (可选) 尝试从后端获取真实数据
-  // try {
-  //   const realData = await service.get('/user/users');
-  //   tableData.value = realData.data; // 假设后端返回的数据在 data 字段
-  //   pageTotal.value = realData.data.length; // 暂时用长度作为 total
-  // } catch (error) {
-  //   console.error("获取真实数据失败", error);
-  //   ElMessage.error("后端数据加载失败，使用模拟数据");
-  // }
+    // 你的后端 /userPage 接口返回的数据结构是 { code: "200", data: { total: ..., data: [...] } }
+    if (res.code === '200') {
+      tableData.value = res.data.data;  // 列表数据
+      pageTotal.value = res.data.total; // 总数
+    } else {
+      ElMessage.error(res.message || '加载数据失败');
+    }
+  } catch (error) {
+    console.error("获取真实数据失败", error);
+    ElMessage.error("后端数据加载失败");
+  }
 };
+// ===============================================
+
 
 const handleSearch = () => {
   query.pageIndex = 1;
@@ -6351,10 +7450,6 @@ const handlePageChange = (val: number) => {
   getData();
 };
 
-const visible = ref(false);
-let idx: number = -1;
-const idEdit = ref(false);
-const rowData = ref<TableItem>();
 
 const handleEdit = (index: number, row: TableItem) => {
   idx = index;
@@ -6380,7 +7475,7 @@ const updateData = async (row: TableItem) => {
     try {
       await service.post('/user/insertUser', row);
       ElMessage.success('新增成功');
-      getData(); // 重新加载数据
+      getData(); // Geluidsdata
     } catch (error) {
       console.error(error);
       ElMessage.error('新增失败');
@@ -6394,7 +7489,7 @@ const closeDialog = () => {
   idEdit.value = false;
 };
 
-const visible1 = ref(false);
+
 const handleView = (row: TableItem) => {
   rowData.value = row;
   visible1.value = true;
@@ -6449,17 +7544,17 @@ getData();
               <span class="message-title">{{ scope.row.title }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="date" width="180"></el-table-column>
-          <el-table-column width="120">
-            <template #default="scope">
-              <el-button size="small" @click="handleRead(scope.$index)">标为已读</el-button>
-            </template>
-          </el-table-column>
+          <el-table-column prop="messageTime" width="180"></el-table-column> <el-table-column width="120">
+          <template #default="scope">
+            <el-button size="small" @click="handleRead(scope.row.id, scope.$index)">标为已读</el-button>
+          </template>
+        </el-table-column>
         </el-table>
         <div class="handle-row">
-          <el-button type="primary">全部标为已读</el-button>
+          <el-button type="primary" @click="handleReadAll">全部标为已读</el-button>
         </div>
       </el-tab-pane>
+
       <el-tab-pane :label="`已读消息(${state.read.length})`" name="second">
         <template v-if="message === 'second'">
           <el-table :data="state.read" :show-header="false" style="width: 100%">
@@ -6468,18 +7563,18 @@ getData();
                 <span class="message-title">{{ scope.row.title }}</span>
               </template>
             </el-table-column>
-            <el-table-column prop="date" width="180"></el-table-column>
-            <el-table-column width="120">
-              <template #default="scope">
-                <el-button type="danger" size="small" @click="handleDel(scope.$index)">删除</el-button>
-              </template>
-            </el-table-column>
+            <el-table-column prop="messageTime" width="180"></el-table-column> <el-table-column width="120">
+            <template #default="scope">
+              <el-button type="danger" size="small" @click="handleDel(scope.row.id, scope.$index)">删除</el-button>
+            </template>
+          </el-table-column>
           </el-table>
           <div class="handle-row">
-            <el-button type="danger">删除全部</el-button>
+            <el-button type="danger" @click="handleRecycleAllRead">删除全部</el-button>
           </div>
         </template>
       </el-tab-pane>
+
       <el-tab-pane :label="`回收站(${state.recycle.length})`" name="third">
         <template v-if="message === 'third'">
           <el-table :data="state.recycle" :show-header="false" style="width: 100%">
@@ -6488,15 +7583,14 @@ getData();
                 <span class="message-title">{{ scope.row.title }}</span>
               </template>
             </el-table-column>
-            <el-table-column prop="date" width="180"></el-table-column>
-            <el-table-column width="120">
-              <template #default="scope">
-                <el-button size="small" @click="handleRestore(scope.$index)">还原</el-button>
-              </template>
-            </el-table-column>
+            <el-table-column prop="messageTime" width="180"></el-table-column> <el-table-column width="120">
+            <template #default="scope">
+              <el-button size="small" @click="handleRestore(scope.row.id, scope.$index)">还原</el-button>
+            </template>
+          </el-table-column>
           </el-table>
           <div class="handle-row">
-            <el-button type="danger">清空回收站</el-button>
+            <el-button type="danger" @click="handleEmptyRecycle">清空回收站</el-button>
           </div>
         </template>
       </el-tab-pane>
@@ -6505,46 +7599,128 @@ getData();
 </template>
 
 <script setup lang="ts" name="tabs">
-import {ref, reactive} from 'vue';
+import { ref, reactive, onMounted } from 'vue'; // 导入 onMounted
+import { ElMessage } from 'element-plus';
+import service from '../utils/request'; // 导入 service
 
 const message = ref('first');
 const state = reactive({
-  unread: [
-    {
-      date: '2018-04-19 20:00:00',
-      title: '江苏南京一小区发生重大火情'
-    },
-    {
-      date: '2018-04-19 21:00:00',
-      title: '南京xx小区大火已经熄灭'
-    }
-  ],
-  read: [
-    {
-      date: '2018-04-19 20:00:00',
-      title: '【系统通知】该系统将于今晚凌晨2点到5点进行升级维护'
-    }
-  ],
-  recycle: [
-    {
-      date: '2018-04-19 20:00:00',
-      title: '【系统通知】该系统将于今晚凌晨2点到5点进行升级维护'
-    }
-  ]
+  unread: [],
+  read: [],
+  recycle: []
 });
 
-const handleRead = (index: number) => {
-  const item = state.unread.splice(index, 1);
-  state.read = item.concat(state.read);
+// 1. 从后端获取所有数据
+const getData = async () => {
+  try {
+    const res = await service.get('/message/all');
+    if (res.code === '200') {
+      state.unread = res.data.unread || [];
+      state.read = res.data.read || [];
+      state.recycle = res.data.recycle || [];
+    } else {
+      ElMessage.error(res.message || '加载消息失败');
+    }
+  } catch (error) {
+    ElMessage.error('连接后端失败');
+  }
 };
-const handleDel = (index: number) => {
-  const item = state.read.splice(index, 1);
-  state.recycle = item.concat(state.recycle);
+
+// 在组件挂载时自动加载数据
+onMounted(() => {
+  getData();
+});
+
+// 2. 标为已读 (0 -> 1)
+const handleRead = async (id: number, index: number) => {
+  try {
+    const res = await service.put(`/message/read/${id}`);
+    if (res.code === '200') {
+      const item = state.unread.splice(index, 1);
+      state.read = item.concat(state.read);
+    } else {
+      ElMessage.error(res.message || '操作失败');
+    }
+  } catch (error) {
+    ElMessage.error('请求失败');
+  }
 };
-const handleRestore = (index: number) => {
-  const item = state.recycle.splice(index, 1);
-  state.read = item.concat(state.read);
+
+// 3. 删除到回收站 (1 -> 2)
+const handleDel = async (id: number, index: number) => {
+  try {
+    const res = await service.put(`/message/recycle/${id}`);
+    if (res.code === '200') {
+      const item = state.read.splice(index, 1);
+      state.recycle = item.concat(state.recycle);
+    } else {
+      ElMessage.error(res.message || '删除失败');
+    }
+  } catch (error) {
+    ElMessage.error('请求失败');
+  }
 };
+
+// 4. 从回收站还原 (2 -> 1)
+const handleRestore = async (id: number, index: number) => {
+  try {
+    const res = await service.put(`/message/restore/${id}`);
+    if (res.code === '200') {
+      const item = state.recycle.splice(index, 1);
+      state.read = item.concat(state.read);
+    } else {
+      ElMessage.error(res.message || '还原失败');
+    }
+  } catch (error) {
+    ElMessage.error('请求失败');
+  }
+};
+
+// 5. 全部标为已读 (0 -> 1)
+const handleReadAll = async () => {
+  try {
+    const res = await service.put('/message/read-all');
+    if (res.code === '200') {
+      ElMessage.success('全部已读');
+      getData(); // 重新加载数据
+    } else {
+      ElMessage.error(res.message || '操作失败');
+    }
+  } catch (error) {
+    ElMessage.error('请求失败');
+  }
+};
+
+// 6. 删除全部已读 (1 -> 2)
+const handleRecycleAllRead = async () => {
+  try {
+    const res = await service.put('/message/recycle-all-read');
+    if (res.code === '200') {
+      ElMessage.success('删除全部');
+      getData(); // 重新加载数据
+    } else {
+      ElMessage.error(res.message || '操作失败');
+    }
+  } catch (error) {
+    ElMessage.error('请求失败');
+  }
+};
+
+// 7. 清空回收站 (DELETE status 2)
+const handleEmptyRecycle = async () => {
+  try {
+    const res = await service.delete('/message/recycle-bin');
+    if (res.code === '200') {
+      ElMessage.success('已清空');
+      getData(); // 重新加载数据
+    } else {
+      ElMessage.error(res.message || '操作失败');
+    }
+  } catch (error) {
+    ElMessage.error('请求失败');
+  }
+};
+
 </script>
 
 <style>
@@ -6556,7 +7732,6 @@ const handleRestore = (index: number) => {
   margin-top: 30px;
 }
 </style>
-
 
 ==================== END FILE: ManageSystemVue\vue-manage-system\src\views\tabs.vue ====================
 
