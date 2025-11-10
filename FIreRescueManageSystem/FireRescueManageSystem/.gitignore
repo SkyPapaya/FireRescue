@@ -4,7 +4,7 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-.jar
+*.jar
 ### STS ###
 .apt_generated
 .classpath
