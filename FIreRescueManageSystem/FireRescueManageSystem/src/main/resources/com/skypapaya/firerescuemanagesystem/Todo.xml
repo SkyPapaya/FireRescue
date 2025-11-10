@@ -9,36 +9,41 @@
         <result column="status" property="status"/>
         <result column="gmt_created" property="gmtCreated"/>
         <result column="gmt_modified" property="gmtModified"/>
+        <result column="user_id" property="userId"/>
     </resultMap>
 
-    <select id="findAll" resultMap="todoResultMap">
-        SELECT * FROM todo ORDER BY gmt_created DESC
+    <select id="findAllByUserId" resultMap="todoResultMap">
+        SELECT * FROM todo
+        WHERE user_id = #{userId}  -- 新增条件
+        ORDER BY gmt_created DESC
     </select>
 
     <insert id="insertTodo" parameterType="com.skypapaya.firerescuemanagesystem.DO.TodoDO"
             useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO todo (title, status, gmt_created, gmt_modified)
-        VALUES (#{title}, #{status}, now(), now())
+
+        INSERT INTO todo (title, status, gmt_created, gmt_modified, user_id)
+        VALUES (#{title}, #{status}, now(), now(), #{userId})
+
     </insert>
 
     <update id="updateTodoStatus" parameterType="com.skypapaya.firerescuemanagesystem.DO.TodoDO">
         UPDATE todo
         SET status = #{status}, gmt_modified = now()
-        WHERE id = #{id}
+        WHERE id = #{id} AND user_id = #{userId} -- 新增 user_id 条件
     </update>
 
     <delete id="deleteTodo">
-        DELETE FROM todo WHERE id = #{id}
+        DELETE FROM todo
+        WHERE id = #{id} AND user_id = #{userId} -- 新增 user_id 条件
     </delete>
 
     <update id="updateAllStatus">
         UPDATE todo
         SET status = #{status}, gmt_modified = now()
-        WHERE status != #{status}
+        WHERE status != #{status} AND user_id = #{userId} -- 新增 user_id 条件
     </update>
 
-    <delete id="deleteAll">
-        TRUNCATE TABLE todo
+    <delete id="deleteAllByUserId">
+        DELETE FROM todo WHERE user_id = #{userId}
     </delete>
-
 </mapper>
