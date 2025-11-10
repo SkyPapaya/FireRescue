@@ -10,4 +10,5 @@ public class TodoDO {
     private Boolean status;
     private LocalDateTime gmtCreated;
     private LocalDateTime gmtModified;
+    private Long userId;
 }
