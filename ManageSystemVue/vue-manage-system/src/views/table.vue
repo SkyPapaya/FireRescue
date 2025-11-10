@@ -91,6 +91,7 @@
         v-model="visible"
         width="30%"
         @close="closeDialog"
+        destroy-on-close
     >
       <table-edit
           :data="rowData"
@@ -128,7 +129,7 @@ interface TableItem {
   name: string;
   e_mail: string;
   phone: string;
-  authority: number; // 确保类型匹配
+  authority: string; // 确保类型匹配
   address: string;
   gmtCreated: string; // 确保这个字段名和后端返回的一致
 }
@@ -149,7 +150,6 @@ const rowData = ref<TableItem>();
 const visible1 = ref(false);
 
 
-// ========== 这是唯一且正确的 getData 函数 ==========
 const getData = async () => {
   try {
     // 请求后端的 /user/userPage 接口，并传入分页参数

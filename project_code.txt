@@ -821,10 +821,31 @@ public class UserController {
         return Result.success(dbUser);
     }
 
+    //编辑用户信息
+    @PutMapping("/updateUser")
+    @ResponseBody
+    public Result updateUser(@RequestBody UserDO user) {
+        // 检查 authority 字段，防止普通用户给自己提权
+        // (这是一个可选的安全增强)
+        // if (user.getAuthority() != null && user.getAuthority().equals("admin")) {
+        //    // 在这里添加逻辑：检查当前操作者是否是 admin
+        //    // 如果不是，则 return Result.error("403", "权限不足");
+        // }
+
+        int result = userDAO.updateUser(user);
+
+        if (result > 0) {
+            return Result.success("更新成功");
+        } else {
+            return Result.error("500", "更新失败，用户可能不存在");
+        }
+    }
 
     @PostMapping("/register")
     @ResponseBody
-    public Result registerUser(@RequestBody UserDO user) {
+//    public Result registerUser(@RequestBody UserDO user) {
+    public Result registerUser(@RequestBody Map<String, Object> body) {
+        System.out.println("user:"+body.toString());
         // 检查用户名是否已存在 (可选但推荐)
         // ... (
         //   List<UserDO> users = userDAO.findByName(user.getName());
@@ -832,7 +853,8 @@ public class UserController {
         //       return Result.error("501", "用户名已存在");
         //   }
         // )
-
+        UserDO user = new UserDO((String) body.get("name"), (String) body.get("eMail"), (String) body.get("phone"), (String) body.get("sex"), (String) body.get("password"), body.get("age") != null ? (int) body.get("age") : 0, (String) body.get("address"));
+        System.out.println("user:"+user.toString());
         // 我们跳过加密，直接插入
         int result = userDAO.registerUser(user);
 
@@ -1112,13 +1134,15 @@ public interface UserDAO {
     int delete(@Param("id") Long id);
 
     int registerUser(UserDO user);
+    //编辑用户信息
+    int updateUser(UserDO user);
+
 
     //根据用户名查询用户
 
     UserDO findByName(@Param("name") String name);
 
     //分页查询的实现
-    @Select("select * from user limit #{page}, #{size}")
     List<UserDO> page(int page, int size);
 
     //返回数据库的总条数
@@ -1416,7 +1440,7 @@ public class UserDO {
     Long id;
     String name;
     int age;
-    String eMail;
+    String e_mail;
     String phone;
     String sex;
     String authority;
@@ -1424,6 +1448,22 @@ public class UserDO {
     String password;
     LocalDateTime gmtCreated;
     LocalDateTime gmtModified;
+
+    public UserDO() {}
+
+    public UserDO(String name, String e_mail, String phone, String sex, String password, int age, String address) {
+        this.name = name;
+        this.e_mail = e_mail;
+        this.phone = phone;
+        this.sex = sex;
+        this.password = password;
+        this.age = age;
+        this.address = address;
+    }
+
+    public String toString() {
+        return "UserDO{" +"id=" + id + ", name='" + name + '\'' + ", age=" + age + ", eMail='" + e_mail + '\'' + ", phone='" + phone + '\'' + ", sex='" + sex + '\'' + ", authority='" + authority + '\'' + ", address='" + address + '\'' + ", password='" + password + '\'' + "}";
+    }
 
 }
 
@@ -2185,30 +2225,31 @@ mybatis.mapper-locations=classpath:com/skypapaya/firerescuemanagesystem/*.xml,cl
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.skypapaya.firerescuemanagesystem.DAO.UserDAO">
-
-
     <resultMap id="userResultMap" type="com.skypapaya.firerescuemanagesystem.DO.UserDO">
         <id column="id" property="id" jdbcType="INTEGER"/>
         <result column="name" property="name" jdbcType="VARCHAR"/>
         <result column="age" property="age" jdbcType="INTEGER"/>
-        <result column="e_mail" property="eMail" jdbcType="VARCHAR"/>
+        <result column="e_mail" property="e_mail" jdbcType="VARCHAR"/>
         <result column="phone" property="phone" jdbcType="VARCHAR"/>
         <result column="address" property="address" jdbcType="VARCHAR"/>
-        <result column="create_time" property="gmtCreated"/>
-        <result column="update_time" property="gmtModified"/>
+        <result column="sex" property="sex" jdbcType="VARCHAR"/>
+        <result column="authority" property="authority" jdbcType="VARCHAR"/>
+        <result column="password" property="password" jdbcType="VARCHAR"/>
+        <result column="gmt_created" property="gmtCreated"/>
+        <result column="gmt_modified" property="gmtModified"/>
     </resultMap>
 
     <insert id="insertUser" parameterType="com.skypapaya.firerescuemanagesystem.DO.UserDO" useGeneratedKeys="true"
             keyProperty="id">
         INSERT INTO user (name, age, e_mail, phone, address, sex, authority, gmt_created, gmt_modified)
-        VALUES (#{name}, #{age}, #{eMail}, #{phone}, #{address}, #{sex}, #{authority}, now(), now())
+        VALUES (#{name}, #{age}, #{e_mail}, #{phone}, #{address}, #{sex}, #{authority}, now(), now())
     </insert>
 
     <update id="updateUser" parameterType="com.skypapaya.firerescuemanagesystem.DO.UserDO">
         UPDATE user
         SET name         = #{name},
             age          = #{age},
-            e_mail       = #{eMail},
+            e_mail       = #{e_mail},
             phone        = #{phone},
             address      = #{address},
             sex          = #{sex},
@@ -2219,8 +2260,12 @@ mybatis.mapper-locations=classpath:com/skypapaya/firerescuemanagesystem/*.xml,cl
 
     <insert id="registerUser" parameterType="com.skypapaya.firerescuemanagesystem.DO.UserDO" useGeneratedKeys="true"
             keyProperty="id">
-        INSERT INTO user (name, password, authority, gmt_created, gmt_modified)
-        VALUES (#{name}, #{password}, 'user', now(), now())
+        INSERT INTO user (name, password, authority,
+                          age, e_mail, phone, sex, address,
+                          gmt_created, gmt_modified)
+        VALUES (#{name}, #{password}, 'user',
+                #{age}, #{e_mail}, #{phone}, #{sex}, #{address},
+                now(), now())
     </insert>
 
     <select id="findByName" resultMap="userResultMap">
@@ -2240,14 +2285,11 @@ mybatis.mapper-locations=classpath:com/skypapaya/firerescuemanagesystem/*.xml,cl
         where id = #{id}
     </delete>
 
-    <!--    <select id="page" parameterType="">-->
-    <!--        SELECT * FROM user LIMIT #{pageNum}, #{size}-->
-    <!--    </select>-->
-    <!--    <select id="count">-->
-    <!--        SELECT COUNT(*) FROM user-->
-    <!--    </select>-->
-
+    <select id="page" resultMap="userResultMap">
+        SELECT * FROM user LIMIT #{page}, #{size}
+    </select>
 </mapper>
+
 
 ==================== END FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\resources\com\skypapaya\firerescuemanagesystem\User.xml ====================
 
@@ -2403,11 +2445,14 @@ declare module '@vue/runtime-core' {
     ElIcon: typeof import('element-plus/es')['ElIcon']
     ElImage: typeof import('element-plus/es')['ElImage']
     ElInput: typeof import('element-plus/es')['ElInput']
+    ElLink: typeof import('element-plus/es')['ElLink']
     ElMenu: typeof import('element-plus/es')['ElMenu']
     ElMenuItem: typeof import('element-plus/es')['ElMenuItem']
+    ElOption: typeof import('element-plus/es')['ElOption']
     ElPagination: typeof import('element-plus/es')['ElPagination']
     ElProgress: typeof import('element-plus/es')['ElProgress']
     ElRow: typeof import('element-plus/es')['ElRow']
+    ElSelect: typeof import('element-plus/es')['ElSelect']
     ElSubMenu: typeof import('element-plus/es')['ElSubMenu']
     ElTable: typeof import('element-plus/es')['ElTable']
     ElTableColumn: typeof import('element-plus/es')['ElTableColumn']
@@ -4303,47 +4348,46 @@ const sidebarItems = computed(() => {
 ==================== START FILE: ManageSystemVue\vue-manage-system\src\components\table-detail.vue ====================
 
 <template>
-	<el-descriptions title="" :column="2" border>
-		<el-descriptions-item>
-			<template #label> 用户ID </template>
-			{{ data.id }}
-		</el-descriptions-item>
-		<el-descriptions-item>
-			<template #label> 用户名 </template>
-			{{ data.name }}
-		</el-descriptions-item>
-		<el-descriptions-item>
-			<template #label> 邮箱 </template>
-			{{ data.e_mail }}
-		</el-descriptions-item>
-		<el-descriptions-item>
-			<template #label> 电话号码 </template>
-			{{ data.phone  }}
-		</el-descriptions-item>
-		<el-descriptions-item :span="2">
-			<template #label> 权限 </template>
-			{{ data.authority }}
-		</el-descriptions-item>
-		<el-descriptions-item>
-			<template #label> 地址 </template>
-			{{ data.address }}
-		</el-descriptions-item>
-		<el-descriptions-item>
-			<template #label> 注册时间 </template>
-			<img :src="data.createdTime" style="width: 120px" alt="" />
-		</el-descriptions-item>
-	</el-descriptions>
+  <el-descriptions title="" :column="2" border>
+    <el-descriptions-item>
+      <template #label> 用户ID </template>
+      {{ data.id }}
+    </el-descriptions-item>
+    <el-descriptions-item>
+      <template #label> 用户名 </template>
+      {{ data.name }}
+    </el-descriptions-item>
+    <el-descriptions-item>
+      <template #label> 邮箱 </template>
+      {{ data.e_mail || '未提供' }}
+    </el-descriptions-item>
+    <el-descriptions-item>
+      <template #label> 电话号码 </template>
+      {{ data.phone || '未提供' }}
+    </el-descriptions-item>
+    <el-descriptions-item :span="2">
+      <template #label> 权限 </template>
+      {{ data.authority || 'N/A' }}
+    </el-descriptions-item>
+    <el-descriptions-item>
+      <template #label> 地址 </template>
+      {{ data.address || '未提供' }}
+    </el-descriptions-item>
+    <el-descriptions-item>
+      <template #label> 注册时间 </template>
+      {{ data.gmtCreated || 'N/A' }}
+    </el-descriptions-item>
+  </el-descriptions>
 </template>
 
 <script lang="ts" setup>
 const props = defineProps({
-	data: {
-		type: Object,
-		required: true
-	}
+  data: {
+    type: Object,
+    required: true
+  }
 });
 </script>
-
 
 ==================== END FILE: ManageSystemVue\vue-manage-system\src\components\table-detail.vue ====================
 
@@ -4378,13 +4422,14 @@ const props = defineProps({
       <el-input v-model="form.authority"></el-input>
     </el-form-item>
 
-    <el-form-item label="address" prop="authority">
+    <el-form-item label="地址" prop="authority">
       <el-input v-model="form.address"></el-input>
     </el-form-item>
 
     <el-form-item label="注册日期" prop="date">
       <el-date-picker type="date" v-model="form.date" value-format="YYYY-MM-DD"></el-date-picker>
     </el-form-item>
+
     <el-form-item>
       <el-button type="primary" @click="saveEdit(formRef)">保 存</el-button>
     </el-form-item>
@@ -4412,13 +4457,13 @@ const props = defineProps({
 
 const defaultData = {
   id: 0,
-  name: 'SkyPapaya',
-  e_mail: '898496136@qq.cpm',
-  phone: '15285615707',
-  authority: 0,
-  address: 'NJUPT',
-  sex:'male',
-  createdTime: new Date()
+  name: '',
+  e_mail: '',
+  phone: '',
+  authority: 'user', // 默认为 'user'
+  address: '',
+  sex: '未知', // 与 login.vue 保持一致
+  createdTime: Date.now()
 };
 
 const form = ref({...(props.edit ? props.data : defaultData)});
@@ -4651,17 +4696,14 @@ const handleTags = (command: string) => {
 
 
 
-==================== START FILE: ManageSystemVue\vue-manage-system\src\router\index.ts ====================
+==================== START FILE: ManageSystemVue\vue-manage-system\src\router\index-routes.ts ====================
 
-import { createRouter, createWebHashHistory, RouteRecordRaw } from 'vue-router';
-import { useUserStore } from '../store/userStore';
+// 这是一个新文件，存放路由定义
+import { RouteRecordRaw } from 'vue-router';
 import Home from '../views/home.vue';
-import NProgress from 'nprogress';
-import 'nprogress/nprogress.css';
 
 /**
  * 公共路由
- * 所有用户（无论是否登录）都可以访问
  */
 export const publicRoutes: RouteRecordRaw[] = [
     {
@@ -4688,16 +4730,11 @@ export const publicRoutes: RouteRecordRaw[] = [
         },
         component: () => import(/* webpackChunkName: "404" */ '../views/404.vue'),
     },
-    {
-        path: '/:pathMatch(.*)*', // 捕获所有未匹配的路由
-        name: 'NotFound',
-        redirect: '/404'
-    },
+
 ];
 
 /**
  * 异步路由 (即 权限路由)
- * 需要根据用户角色 (authority) 动态添加
  */
 export const asyncRoutes: RouteRecordRaw[] = [
     {
@@ -4706,12 +4743,10 @@ export const asyncRoutes: RouteRecordRaw[] = [
         component: Home,
         redirect: '/dashboard',
         meta: {
-            // 父路由也需要 meta，供 sidebar.vue 渲染
             title: '系统首页',
             icon: 'Odometer',
-            roles: ['admin', 'user'] // 假设所有登录用户都能看首页
+            roles: ['admin', 'user']
         },
-        // 这里的 children 将被 sidebar.vue 动态渲染
         children: [
             {
                 path: '/dashboard',
@@ -4724,14 +4759,12 @@ export const asyncRoutes: RouteRecordRaw[] = [
                 component: () => import(/* webpackChunkName: "dashboard" */ '../views/dashboard.vue'),
             },
             {
-                // 【权限点】
-                // 对应您原 sidebar.vue 的 "人员及设备情况管理"
-                path: '/management', // 创建一个父路径
+                path: '/management',
                 name: 'management',
                 meta: {
                     title: '人员及设备管理',
                     icon: 'Calendar',
-                    roles: ['admin'] // 重点：只有 admin 能访问
+                    roles: ['admin']
                 },
                 redirect: '/management/table',
                 children: [
@@ -4754,7 +4787,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
                         component: () => import(/* webpackChunkName: "deviceManagement" */ '../views/deviceManagement.vue'),
                     },
                     {
-                        path: '/management/device-monitor', // 创建一个父路径
+                        path: '/management/device-monitor',
                         name: 'deviceMonitor',
                         meta: {
                             title: '设备实时监控',
@@ -4829,7 +4862,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
                 name: 'map',
                 meta: {
                     title: '逃生路线',
-                    icon: 'el-icon-picture-outline', // (请确保您有这个icon)
+                    icon: 'el-icon-picture-outline',
                     roles: ['admin', 'user']
                 },
                 component: () => import(/* webpackChunkName: "dashboard" */ '../views/map.vue'),
@@ -4840,7 +4873,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
                 meta: {
                     title: '个人中心',
                     icon: 'User',
-                    hidden: true, // 在侧边栏中隐藏
+                    hidden: true,
                     roles: ['admin', 'user']
                 },
                 component: () => import(/* webpackChunkName: "user" */ '../views/user.vue'),
@@ -4849,6 +4882,21 @@ export const asyncRoutes: RouteRecordRaw[] = [
     },
 ];
 
+==================== END FILE: ManageSystemVue\vue-manage-system\src\router\index-routes.ts ====================
+
+
+
+==================== START FILE: ManageSystemVue\vue-manage-system\src\router\index.ts ====================
+
+// 文件路径: src/router/index.ts (最终的生产版本)
+
+import { createRouter, createWebHashHistory, RouteRecordRaw } from 'vue-router';
+import { useUserStore } from '../store/userStore'; // 导入 store
+import NProgress from 'nprogress';
+import 'nprogress/nprogress.css';
+
+// 1. 从我们分离的路由文件中导入路由
+import { publicRoutes, asyncRoutes } from './index-routes';
 
 /**
  * 递归过滤异步路由
@@ -4878,17 +4926,25 @@ function filterAsyncRoutes(routes: RouteRecordRaw[], authority: string): RouteRe
 }
 
 
-// 创建 router 实例时，只加载公共路由
+// 2. 创建 router 实例时，只加载公共路由
 const router = createRouter({
     history: createWebHashHistory(),
-    routes: publicRoutes, // 初始路由
+    routes: publicRoutes, // 初始只加载公共路由
 });
 
-// 标志位，防止路由重复添加
+// 3. 标志位，防止路由重复添加
 let routesAdded = false;
 
+
+const catchAllRoute: RouteRecordRaw = {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    redirect: '/404'
+};
+
+
 /**
- * 核心：全局路由守卫
+ * 4. 核心：全局路由守卫
  */
 router.beforeEach(async (to, from, next) => {
     NProgress.start();
@@ -4915,6 +4971,8 @@ router.beforeEach(async (to, from, next) => {
                         router.addRoute(route);
                     });
 
+                    router.addRoute(catchAllRoute);
+
                     // 3. 将完整路由列表存入 Pinia (供 sidebar.vue 使用)
                     userStore.setAccessibleRoutes(publicRoutes.concat(finalRoutes));
 
@@ -4938,8 +4996,9 @@ router.beforeEach(async (to, from, next) => {
         }
     } else {
         // --- 2. 用户未登录 ---
-        if (to.path === '/login') {
-            next(); // 访问登录页，放行
+        if (to.path === '/login' || to.path === '/404' || to.path === '/403') {
+            // 访问登录页或错误页，放行
+            next();
         } else {
             // 其他页面，全部重定向到登录页
             next('/login');
@@ -4952,9 +5011,7 @@ router.afterEach(() => {
     NProgress.done();
 });
 
-// 退出登录时重置标志位
-// (我们在 header.vue 中使用了 window.location.reload()，
-// 这会重置所有 JS 状态，所以 routesAdded 会自动重置，无需手动处理)
+// (注意: header.vue 中的 window.location.reload() 会自动重置 routesAdded 标志位)
 
 export default router;
 
@@ -5048,15 +5105,10 @@ export const useTagsStore = defineStore('tags', {
 
 ==================== START FILE: ManageSystemVue\vue-manage-system\src\store\userStore.ts ====================
 
-import { defineStore } from 'pinia';
+// 文件路径: src/store/userStore.ts
+// (请确保文件名和路径正确)
 
-// (可选) 定义 UserDO 类型，如果需要更严格的类型检查
-// interface UserDO {
-//     id: number;
-//     name: string;
-//     authority: string;
-//     // ... 其他字段
-// }
+import { defineStore } from 'pinia';
 
 export const useUserStore = defineStore('user', {
     state: () => {
@@ -5065,7 +5117,7 @@ export const useUserStore = defineStore('user', {
             authority: localStorage.getItem('ms_authority') || '',
 
             // 2. 存储由 router/index.ts 计算出的、该角色可以访问的路由
-            accessibleRoutes: [] as any[] // (类型 'any[]' 用于简化，稍后可改为 'RouteRecordRaw[]')
+            accessibleRoutes: [] as any[]
         };
     },
     actions: {
@@ -5094,17 +5146,14 @@ export const useUserStore = defineStore('user', {
             this.accessibleRoutes = [];
             localStorage.removeItem('ms_authority');
             localStorage.removeItem('ms_username');
-            // 注意: ms_keys 已经因为 permiss.ts 被删除而不再使用
         }
     },
     getters: {
         /**
          * 检查当前用户是否拥有指定角色之一
-         * (这是一个方便的辅助函数，目前暂未使用，但很有用)
          */
         hasPermission: (state) => (roles: string[]) => {
             if (state.authority) {
-                // 检查 state.authority 是否在传入的 roles 数组中
                 return roles.includes(state.authority);
             }
             return false;
@@ -6828,166 +6877,278 @@ const handleCurrentChange = (val) => {
 ==================== START FILE: ManageSystemVue\vue-manage-system\src\views\login.vue ====================
 
 <template>
-  <div class="header">
-    <div class="collapse-btn" @click="collapseChage">
-      <el-icon v-if="sidebar.collapse"><Expand /></el-icon>
-      <el-icon v-else><Fold /></el-icon>
-    </div>
-    <div class="logo">觅生者后台管理系统</div>
-    <div class="header-right">
-      <div class="header-user-con">
-        <div class="btn-bell" @click="router.push('/tabs')">
-          <el-tooltip
-              effect="dark"
-              :content="message ? `有${message}条未读消息` : `消息中心`"
-              placement="bottom"
+  <div class="login-wrap">
+    <div class="ms-login">
+      <div class="ms-title">{{ isRegister ? '注册新用户' : '后台管理系统' }}</div>
+      <el-form :model="param" :rules="rules" ref="loginFormRef" label-width="0px" class="ms-content">
+
+        <el-form-item prop="username">
+          <el-input v-model="param.username" placeholder="用户名">
+            <template #prepend>
+              <el-button :icon="User"></el-button>
+            </template>
+          </el-input>
+        </el-form-item>
+
+        <el-form-item prop="password">
+          <el-input
+              type="password"
+              placeholder="密码"
+              v-model="param.password"
+              @keyup.enter="handleSubmit(loginFormRef)"
           >
-            <i class="el-icon-lx-notice"></i>
-          </el-tooltip>
-          <span class="btn-bell-badge" v-if="message"></span>
+            <template #prepend>
+              <el-button :icon="Lock"></el-button>
+            </template>
+          </el-input>
+        </el-form-item>
+
+        <el-form-item v-if="isRegister" prop="confirmPassword">
+          <el-input
+              type="password"
+              placeholder="确认密码"
+              v-model="param.confirmPassword"
+              @keyup.enter="handleSubmit(loginFormRef)"
+          >
+            <template #prepend>
+              <el-button :icon="Lock"></el-button>
+            </template>
+          </el-input>
+        </el-form-item>
+
+        <el-form-item v-if="isRegister" prop="e_mail">
+          <el-input v-model="param.e_mail" placeholder="邮箱 (e_mail)">
+            <template #prepend><el-button :icon="Message"></el-button></template>
+          </el-input>
+        </el-form-item>
+
+        <el-form-item v-if="isRegister" prop="phone">
+          <el-input v-model="param.phone" placeholder="电话 (phone)">
+            <template #prepend><el-button :icon="Phone"></el-button></template>
+          </el-input>
+        </el-form-item>
+
+        <el-form-item v-if="isRegister" prop="sex">
+          <el-select v-model="param.sex" placeholder="请选择性别" style="width: 100%">
+            <template #prefix>
+              <el-icon class="el-input__icon"><Male /></el-icon>
+            </template>
+            <el-option key="unknown" label="未知" value="未知"></el-option>
+            <el-option key="male" label="男" value="男"></el-option>
+            <el-option key="female" label="女" value="女"></el-option>
+          </el-select>
+        </el-form-item>
+
+        <el-form-item v-if="isRegister" prop="age">
+          <el-input v-model="param.age" placeholder="年龄 (age)" type="number">
+            <template #prepend><el-button :icon="InfoFilled"></el-button></template>
+          </el-input>
+        </el-form-item>
+
+        <el-form-item v-if="isRegister" prop="address">
+          <el-input v-model="param.address" placeholder="地址 (address)">
+            <template #prepend><el-button :icon="Location"></el-button></template>
+          </el-input>
+        </el-form-item>
+
+        <div class="login-btn">
+          <el-button type="primary" @click="handleSubmit(loginFormRef)">
+            {{ isRegister ? '注册' : '登录' }}
+          </el-button>
         </div>
-        <el-avatar class="user-avator" :size="30" :src="imgurl" />
-        <el-dropdown class="user-name" trigger="click" @command="handleCommand">
-          <span class="el-dropdown-link">
-            {{ username }}
-            <el-icon class="el-icon--right">
-              <arrow-down />
-            </el-icon>
-          </span>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="user">个人中心</el-dropdown-item>
-              <el-dropdown-item divided command="loginout"
-              >退出登录</el-dropdown-item
-              >
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
-      </div>
+
+        <div class="login-tips-right">
+          <el-link type="primary" @click="toggleRegister">
+            {{ isRegister ? '已有账户？去登录' : '没有账户？去注册' }}
+          </el-link>
+        </div>
+      </el-form>
     </div>
   </div>
 </template>
+
 <script setup lang="ts">
-import { onMounted } from "vue";
-import { useSidebarStore } from "../store/sidebar";
-import { useRouter } from "vue-router";
-import imgurl from "../assets/img/img.jpg";
-// 1. 导入新的 userStore
-import { useUserStore } from "../store/userStore";
+import { ref, reactive } from 'vue';
+import { useTagsStore } from '../store/tags';
+// 1. 【导入新 Store】
+import { useUserStore } from '../store/userStore';
+import { useRouter } from 'vue-router';
+import { ElMessage } from 'element-plus';
+import type { FormInstance, FormRules } from 'element-plus';
+import service from '../utils/request';
+// 2. 【导入新图标】
+import { Lock, User, Message, Phone, Male, InfoFilled, Location } from '@element-plus/icons-vue';
 
-const username: string | null = localStorage.getItem("ms_username");
-const message: number = 2;
+// 登录/注册状态切换
+const isRegister = ref(false);
 
-const sidebar = useSidebarStore();
-// 侧边栏折叠
-const collapseChage = () => {
-  sidebar.handleCollapse();
-};
-
-onMounted(() => {
-  if (document.body.clientWidth < 1500) {
-    collapseChage();
-  }
+const router = useRouter();
+// 3. 【更新 param】
+const param = reactive({
+  username: '',
+  password: '',
+  confirmPassword: '',
+  e_mail: '',
+  phone: '',
+  sex: '未知', // 默认值
+  age: '',
+  address: '',
 });
 
-// 2. 获取 userStore 实例
-const userStore = useUserStore();
-const router = useRouter();
-
-// 用户名下拉菜单选择事件
-const handleCommand = (command: string) => {
-  if (command == "loginout") {
-    // 3. 【核心改动】调用 clearAuth 清除所有登录信息
-    userStore.clearAuth();
-
-    // 4. 跳转到登录页
-    router.push("/login");
-
-    // 5. 刷新页面以重置路由
-    // 这是清除动态添加的路由的最简单方法
-    window.location.reload();
-
-  } else if (command == "user") {
-    router.push("/user");
+// 确认密码的验证器
+const validatePassConfirm = (rule: any, value: any, callback: any) => {
+  if (value === '') {
+    callback(new Error('请再次输入密码'));
+  } else if (value !== param.password) {
+    callback(new Error('两次输入密码不一致!'));
+  } else {
+    callback();
   }
 };
+
+// 4. 【更新 rules】
+const rules = reactive<FormRules>({
+  username: [
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 6, message: '密码长度不能少于6位', trigger: 'blur' }
+  ],
+  confirmPassword: [
+    { required: true, validator: validatePassConfirm, trigger: 'blur' }
+  ],
+  e_mail: [
+    { required: true, message: '请输入邮箱地址', trigger: 'blur' },
+    { message: '请输入正确的邮箱格式', trigger: ['blur', 'change'] }
+  ],
+  phone: [
+    { required: true, message: '请输入电话号码', trigger: 'blur' }
+  ],
+});
+
+const loginFormRef = ref<FormInstance>();
+// 5. 【使用新 Store】
+const userStore = useUserStore();
+
+// 切换登录/注册模式
+const toggleRegister = () => {
+  isRegister.value = !isRegister.value;
+  loginFormRef.value?.resetFields();
+};
+
+// 统一的提交处理
+const handleSubmit = (formEl: FormInstance | undefined) => {
+  if (!formEl) return;
+  formEl.validate((valid: boolean) => {
+    if (valid) {
+      if (isRegister.value) {
+        submitRegister(); // 调用注册
+      } else {
+        submitLogin(); // 调用登录
+      }
+    } else {
+      ElMessage.error('表单验证失败');
+      return false;
+    }
+  });
+};
+
+// 6. 【新的登录逻辑】
+const submitLogin = async () => {
+  try {
+    const res = await service.post('/user/login', {
+      name: param.username,
+      password: param.password
+    });
+    if (res.code === '200') {
+      ElMessage.success('登录成功');
+      const userData = res.data;
+
+      localStorage.setItem('ms_username', userData.name);
+
+      // 【核心】调用新 Store 的 Action
+      userStore.setAuthority(userData.authority || 'user');
+
+      router.push('/');
+    } else {
+      ElMessage.error(res.message || '登录失败');
+    }
+  } catch (error) {
+    console.error(error);
+    ElMessage.error('登录请求失败，请检查后端服务。');
+  }
+};
+
+// 7. 【新的注册逻辑】
+const submitRegister = async () => {
+  try {
+    const res = await service.post('/user/register', {
+      name: param.username,
+      password: param.password,
+      eMail: param.eMail,
+      phone: param.phone,
+      sex: param.sex,
+      age: param.age ? parseInt(param.age) : 0, // 确保 age 是数字
+      address: param.address
+      // authority 将由后端自动设为 'user'
+    });
+    if (res.code === '200') {
+      ElMessage.success('注册成功！请登录。');
+      isRegister.value = false; // 自动切换回登录界面
+      loginFormRef.value?.resetFields(); // 清空表单
+    } else {
+      ElMessage.error(res.message || '注册失败');
+    }
+  } catch (error) {
+    console.error(error);
+    ElMessage.error('注册请求失败，请检查后端服务是否运行。');
+  }
+};
+
+const tags = useTagsStore();
+tags.clearTags();
 </script>
+
 <style scoped>
 /* (样式保持不变) */
-.header {
-  position: relative;
-  box-sizing: border-box;
-  width: 100%;
-  height: 70px;
-  font-size: 22px;
-  color: #fff;
-}
-.collapse-btn {
+.login-wrap {
   display: flex;
+  align-items: center;
   justify-content: center;
-  align-items: center;
+  width: 100%;
   height: 100%;
-  float: left;
-  padding: 0 21px;
-  cursor: pointer;
+  background-image: url(../assets/img/login-bg.jpg);
+  background-size: 100%;
 }
-.header .logo {
-  float: left;
-  width: 250px;
-  line-height: 70px;
-}
-.header-right {
-  float: right;
-  padding-right: 50px;
-}
-.header-user-con {
-  display: flex;
-  height: 70px;
-  align-items: center;
-}
-.btn-fullscreen {
-  transform: rotate(45deg);
-  margin-right: 5px;
-  font-size: 24px;
-}
-.btn-bell,
-.btn-fullscreen {
-  position: relative;
-  width: 30px;
-  height: 30px;
+.ms-title {
+  line-height: 50px;
   text-align: center;
-  border-radius: 15px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
+  font-size: 20px;
+  color: #333;
+  font-weight: bold;
+  padding-top: 10px;
 }
-.btn-bell-badge {
-  position: absolute;
-  right: 4px;
-  top: 0px;
-  width: 8px;
-  height: 8px;
-  border-radius: 4px;
-  background: #f56c6c;
-  color: #fff;
+.ms-login {
+  width: 350px;
+  border-radius: 5px;
+  background: #fff;
 }
-.btn-bell .el-icon-lx-notice {
-  color: #fff;
+.ms-content {
+  padding: 10px 30px 30px;
 }
-.user-name {
-  margin-left: 10px;
-}
-.user-avator {
-  margin-left: 20px;
-}
-.el-dropdown-link {
-  color: #fff;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-}
-.el-dropdown-menu__item {
+.login-btn {
   text-align: center;
+}
+.login-btn button {
+  width: 100%;
+  height: 36px;
+  margin-bottom: 10px;
+}
+.login-tips-right {
+  font-size: 12px;
+  color: #333;
+  text-align: right;
 }
 </style>
 
@@ -7400,6 +7561,7 @@ const handleChange = (val: string[]) => {
         v-model="visible"
         width="30%"
         @close="closeDialog"
+        destroy-on-close
     >
       <table-edit
           :data="rowData"
@@ -7437,7 +7599,7 @@ interface TableItem {
   name: string;
   e_mail: string;
   phone: string;
-  authority: number; // 确保类型匹配
+  authority: string; // 确保类型匹配
   address: string;
   gmtCreated: string; // 确保这个字段名和后端返回的一致
 }
@@ -7458,7 +7620,6 @@ const rowData = ref<TableItem>();
 const visible1 = ref(false);
 
 
-// ========== 这是唯一且正确的 getData 函数 ==========
 const getData = async () => {
   try {
     // 请求后端的 /user/userPage 接口，并传入分页参数

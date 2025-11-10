@@ -1,7 +1,6 @@
 package com.skypapaya.firerescuemanagesystem.DO;
 
 import lombok.Data;
-import org.apache.catalina.User;
 
 import java.time.LocalDateTime;
 
@@ -10,7 +9,7 @@ public class UserDO {
     Long id;
     String name;
     int age;
-    String eMail;
+    String e_mail;
     String phone;
     String sex;
     String authority;
@@ -21,9 +20,9 @@ public class UserDO {
 
     public UserDO() {}
 
-    public UserDO(String name, String eMail, String phone, String sex, String password, int age, String address) {
+    public UserDO(String name, String e_mail, String phone, String sex, String password, int age, String address) {
         this.name = name;
-        this.eMail = eMail;
+        this.e_mail = e_mail;
         this.phone = phone;
         this.sex = sex;
         this.password = password;
@@ -32,7 +31,7 @@ public class UserDO {
     }
 
     public String toString() {
-        return "UserDO{" +"id=" + id + ", name='" + name + '\'' + ", age=" + age + ", eMail='" + eMail + '\'' + ", phone='" + phone + '\'' + ", sex='" + sex + '\'' + ", authority='" + authority + '\'' + ", address='" + address + '\'' + ", password='" + password + '\'' + "}";
+        return "UserDO{" +"id=" + id + ", name='" + name + '\'' + ", age=" + age + ", eMail='" + e_mail + '\'' + ", phone='" + phone + '\'' + ", sex='" + sex + '\'' + ", authority='" + authority + '\'' + ", address='" + address + '\'' + ", password='" + password + '\'' + "}";
     }
 
 }

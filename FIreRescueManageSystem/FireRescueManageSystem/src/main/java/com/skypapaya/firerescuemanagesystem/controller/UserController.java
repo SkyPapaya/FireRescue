@@ -36,6 +36,25 @@ public class UserController {
         return Result.success(dbUser);
     }
 
+    //编辑用户信息
+    @PutMapping("/updateUser")
+    @ResponseBody
+    public Result updateUser(@RequestBody UserDO user) {
+        // 检查 authority 字段，防止普通用户给自己提权
+        // (这是一个可选的安全增强)
+        // if (user.getAuthority() != null && user.getAuthority().equals("admin")) {
+        //    // 在这里添加逻辑：检查当前操作者是否是 admin
+        //    // 如果不是，则 return Result.error("403", "权限不足");
+        // }
+
+        int result = userDAO.updateUser(user);
+
+        if (result > 0) {
+            return Result.success("更新成功");
+        } else {
+            return Result.error("500", "更新失败，用户可能不存在");
+        }
+    }
 
     @PostMapping("/register")
     @ResponseBody

@@ -38,8 +38,8 @@
           </el-input>
         </el-form-item>
 
-        <el-form-item v-if="isRegister" prop="eMail">
-          <el-input v-model="param.eMail" placeholder="邮箱 (eMail)">
+        <el-form-item v-if="isRegister" prop="e_mail">
+          <el-input v-model="param.e_mail" placeholder="邮箱 (e_mail)">
             <template #prepend><el-button :icon="Message"></el-button></template>
           </el-input>
         </el-form-item>
@@ -110,7 +110,7 @@ const param = reactive({
   username: '',
   password: '',
   confirmPassword: '',
-  eMail: '',
+  e_mail: '',
   phone: '',
   sex: '未知', // 默认值
   age: '',
@@ -140,7 +140,7 @@ const rules = reactive<FormRules>({
   confirmPassword: [
     { required: true, validator: validatePassConfirm, trigger: 'blur' }
   ],
-  eMail: [
+  e_mail: [
     { required: true, message: '请输入邮箱地址', trigger: 'blur' },
     { message: '请输入正确的邮箱格式', trigger: ['blur', 'change'] }
   ],

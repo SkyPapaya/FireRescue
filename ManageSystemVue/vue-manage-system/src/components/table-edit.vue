@@ -18,20 +18,21 @@
     </el-form-item>
 
     <el-form-item label="电话号码" prop="phone">
-      <el-input v-model="form.address"></el-input>
+      <el-input v-model="form.phone"></el-input>
     </el-form-item>
 
     <el-form-item label="权限" prop="authority">
       <el-input v-model="form.authority"></el-input>
     </el-form-item>
 
-    <el-form-item label="address" prop="authority">
+    <el-form-item label="地址" prop="authority">
       <el-input v-model="form.address"></el-input>
     </el-form-item>
 
     <el-form-item label="注册日期" prop="date">
       <el-date-picker type="date" v-model="form.date" value-format="YYYY-MM-DD"></el-date-picker>
     </el-form-item>
+
     <el-form-item>
       <el-button type="primary" @click="saveEdit(formRef)">保 存</el-button>
     </el-form-item>
@@ -59,13 +60,13 @@ const props = defineProps({
 
 const defaultData = {
   id: 0,
-  name: 'SkyPapaya',
-  e_mail: '898496136@qq.cpm',
-  phone: '15285615707',
-  authority: 0,
-  address: 'NJUPT',
-  sex:'male',
-  createdTime: new Date()
+  name: '',
+  e_mail: '',
+  phone: '',
+  authority: 'user', // 默认为 'user'
+  address: '',
+  sex: '未知', // 与 login.vue 保持一致
+  createdTime: Date.now()
 };
 
 const form = ref({...(props.edit ? props.data : defaultData)});
