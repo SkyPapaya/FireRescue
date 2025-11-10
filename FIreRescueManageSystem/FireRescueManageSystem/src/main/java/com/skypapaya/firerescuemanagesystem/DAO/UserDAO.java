@@ -20,6 +20,12 @@ public interface UserDAO {
 
     UserDO findByName(@Param("name") String name);
 
+    // 根据eMail查询用户
+    UserDO findByEMail(@Param("eMail") String eMail);
+
+    // 根据phone查询用户
+    UserDO findByPhone(@Param("phone") String phone);
+
     //分页查询的实现
     @Select("select * from user limit #{page}, #{size}")
     List<UserDO> page(int page, int size);
