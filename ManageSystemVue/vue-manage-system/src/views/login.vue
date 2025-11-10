@@ -57,12 +57,13 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue';
 import { useTagsStore } from '../store/tags';
+// 1. 导入新的 userStore (已注释掉)
+// import { useUserStore } from '../store/userStore';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
 import { Lock, User } from '@element-plus/icons-vue';
 import service from '../utils/request';
-// ========== 1. 在这里导入 service ==========
 
 // 登录/注册状态切换
 const isRegister = ref(false);
@@ -73,6 +74,7 @@ const param = reactive({
   password: '',
   confirmPassword: '',
 });
+
 // 确认密码的验证器
 const validatePassConfirm = (rule: any, value: any, callback: any) => {
   if (value === '') {
@@ -83,6 +85,7 @@ const validatePassConfirm = (rule: any, value: any, callback: any) => {
     callback();
   }
 };
+
 const rules = reactive<FormRules>({
   username: [
     { required: true, message: '请输入用户名', trigger: 'blur' },
@@ -95,8 +98,10 @@ const rules = reactive<FormRules>({
     { required: true, validator: validatePassConfirm, trigger: 'blur' }
   ],
 });
+
 const loginFormRef = ref<FormInstance>();
-const permiss = usePermissStore();
+// 2. 获取 userStore 实例 (已注释掉)
+// const userStore = useUserStore();
 
 // 切换登录/注册模式
 const toggleRegister = () => {
@@ -124,35 +129,24 @@ const handleSubmit = (formEl: FormInstance | undefined) => {
 // 登录逻辑
 const submitLogin = async () => {
   try {
-    // 1. 调用后端 /user/login 接口
     const res = await service.post('/user/login', {
       name: param.username,
       password: param.password
     });
-    // 2. 检查后端返回F
+
     if (res.code === '200') {
       ElMessage.success('登录成功');
       const userData = res.data; // 后端返回的 UserDO
 
-      // 3. 存储用户名
+      // 3. 存储用户名 (用于 header 显示)
       localStorage.setItem('ms_username', userData.name);
-      // 4. 【重要】根据后端返回的 authority 设置权限
-      let userRole = 'user';
-      if (userData.authority === 'admin') {
-        userRole = 'admin';
-      }
 
-      const keys = permiss.defaultList[userRole];
-      permiss.handleSet(keys);
-      localStorage.setItem('ms_keys', JSON.stringify(keys));
+      // 4. 【核心改动】调用 userStore action (已注释掉)
+      // userStore.setAuthority(userData.authority || 'user');
 
-      // ========== 在这里添加下面这行代码 ==========
-      localStorage.setItem('ms_authority', userData.authority || 'user'); // 存储权限字符串
-      // 5. 跳转到首页
+      // 5. 跳转到首页 (此时路由守卫会介入)
       router.push('/');
-
     } else {
-      // "用户不存在" 或 "密码错误"
       ElMessage.error(res.message || '登录失败');
     }
   } catch (error) {
@@ -160,21 +154,20 @@ const submitLogin = async () => {
     ElMessage.error('登录请求失败，请检查后端服务。');
   }
 };
-// ========== 2. 替换为这个新的 submitRegister 函数 ==========
+
+// 注册逻辑 (保持不变)
 const submitRegister = async () => {
   try {
-    // 调用我们创建的后端 /user/register 接口
     const res = await service.post('/user/register', {
       name: param.username,
       password: param.password
-      // 注意：我们发送的是 name 和 password，对应 UserDO.java
     });
+
     if (res.code === '200') {
       ElMessage.success('注册成功！请登录。');
       isRegister.value = false; // 自动切换回登录界面
       loginFormRef.value?.resetFields(); // 清空表单
     } else {
-      // 处理后端可能返回的错误，例如 "用户名已存在"
       ElMessage.error(res.message || '注册失败');
     }
   } catch (error) {
@@ -182,13 +175,13 @@ const submitRegister = async () => {
     ElMessage.error('注册请求失败，请检查后端服务是否运行。');
   }
 };
-// ========================================================
 
 const tags = useTagsStore();
 tags.clearTags();
 </script>
 
 <style scoped>
+/* (样式保持不变) */
 .login-wrap {
   display: flex;
   align-items: center;

@@ -784,13 +784,11 @@ public class TodoController {
 ==================== START FILE: FIreRescueManageSystem\FireRescueManageSystem\src\main\java\com\skypapaya\firerescuemanagesystem\controller\UserController.java ====================
 
 package com.skypapaya.firerescuemanagesystem.controller;
-
 import com.skypapaya.firerescuemanagesystem.DAO.UserDAO;
 import com.skypapaya.firerescuemanagesystem.DO.UserDO;
 import com.skypapaya.firerescuemanagesystem.model.Result;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -1115,11 +1113,8 @@ public interface UserDAO {
 
     int registerUser(UserDO user);
 
-    /**
-     * 根据用户名查询用户
-     * @param name 用户名
-     * @return UserDO 对象，如果不存在则为 null
-     */
+    //根据用户名查询用户
+
     UserDO findByName(@Param("name") String name);
 
     //分页查询的实现
@@ -2396,7 +2391,6 @@ declare module '@vue/runtime-core' {
     ElCard: typeof import('element-plus/es')['ElCard']
     ElCheckbox: typeof import('element-plus/es')['ElCheckbox']
     ElCol: typeof import('element-plus/es')['ElCol']
-    ElContainer: typeof import('element-plus/es')['ElContainer']
     ElDatePicker: typeof import('element-plus/es')['ElDatePicker']
     ElDescriptions: typeof import('element-plus/es')['ElDescriptions']
     ElDescriptionsItem: typeof import('element-plus/es')['ElDescriptionsItem']
@@ -2409,7 +2403,6 @@ declare module '@vue/runtime-core' {
     ElIcon: typeof import('element-plus/es')['ElIcon']
     ElImage: typeof import('element-plus/es')['ElImage']
     ElInput: typeof import('element-plus/es')['ElInput']
-    ElLink: typeof import('element-plus/es')['ElLink']
     ElMenu: typeof import('element-plus/es')['ElMenu']
     ElMenuItem: typeof import('element-plus/es')['ElMenuItem']
     ElPagination: typeof import('element-plus/es')['ElPagination']
@@ -2663,7 +2656,6 @@ import { createPinia } from 'pinia';
 import * as ElementPlusIconsVue from '@element-plus/icons-vue';
 import App from './App.vue';
 import router from './router';
-import { usePermissStore } from './store/permiss';
 import 'element-plus/dist/index.css';
 import './assets/css/icon.css';
 
@@ -2675,16 +2667,6 @@ app.use(router);
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
     app.component(key, component);
 }
-// 自定义权限指令
-const permiss = usePermissStore();
-app.directive('permiss', {
-    mounted(el, binding) {
-        if (!permiss.key.includes(String(binding.value))) {
-            el['hidden'] = true;
-        }
-    },
-});
-
 app.mount('#app');
 
 
@@ -3285,11 +3267,11 @@ let option: {
     {
       dimensions: ['name', 'value'],
       source: [
-        ['湿度', 0],
-        ['温度', 0],
+        ['湿度', 55],
+        ['温度', 34.2],
         ['火情', 0],
-        ['CO浓度', 0],
-        ['烟雾浓度', 0],
+        ['CO浓度', 0.2],
+        ['烟雾浓度', 0.3],
       ]
     },
     {
@@ -3655,7 +3637,7 @@ let option: {
   tooltip: { formatter: (params) => string; axisPointer: { animation: boolean }; trigger: string };
   title: { text: string }
 };
-let risk = 0.05;
+let risk = 1;
 
 const load = () => {
   service.get('environment/getTheLatest').then((res) => {
@@ -4011,7 +3993,6 @@ onMounted(() => {
 
 <template>
   <div class="header">
-    <!-- 折叠按钮 -->
     <div class="collapse-btn" @click="collapseChage">
       <el-icon v-if="sidebar.collapse"><Expand /></el-icon>
       <el-icon v-else><Fold /></el-icon>
@@ -4019,20 +4000,17 @@ onMounted(() => {
     <div class="logo">觅生者后台管理系统</div>
     <div class="header-right">
       <div class="header-user-con">
-        <!-- 消息中心 -->
         <div class="btn-bell" @click="router.push('/tabs')">
           <el-tooltip
-            effect="dark"
-            :content="message ? `有${message}条未读消息` : `消息中心`"
-            placement="bottom"
+              effect="dark"
+              :content="message ? `有${message}条未读消息` : `消息中心`"
+              placement="bottom"
           >
             <i class="el-icon-lx-notice"></i>
           </el-tooltip>
           <span class="btn-bell-badge" v-if="message"></span>
         </div>
-        <!-- 用户头像 -->
         <el-avatar class="user-avator" :size="30" :src="imgurl" />
-        <!-- 用户名下拉菜单 -->
         <el-dropdown class="user-name" trigger="click" @command="handleCommand">
           <span class="el-dropdown-link">
             {{ username }}
@@ -4044,7 +4022,7 @@ onMounted(() => {
             <el-dropdown-menu>
               <el-dropdown-item command="user">个人中心</el-dropdown-item>
               <el-dropdown-item divided command="loginout"
-                >退出登录</el-dropdown-item
+              >退出登录</el-dropdown-item
               >
             </el-dropdown-menu>
           </template>
@@ -4058,6 +4036,8 @@ import { onMounted } from "vue";
 import { useSidebarStore } from "../store/sidebar";
 import { useRouter } from "vue-router";
 import imgurl from "../assets/img/img.jpg";
+// 1. 导入新的 userStore
+import { useUserStore } from "../store/userStore";
 
 const username: string | null = localStorage.getItem("ms_username");
 const message: number = 2;
@@ -4074,18 +4054,30 @@ onMounted(() => {
   }
 });
 
-// 用户名下拉菜单选择事件
+// 2. 获取 userStore 实例
+const userStore = useUserStore();
 const router = useRouter();
+
+// 用户名下拉菜单选择事件
 const handleCommand = (command: string) => {
   if (command == "loginout") {
-    localStorage.removeItem("ms_username");
+    // 3. 【核心改动】调用 clearAuth 清除所有登录信息
+    userStore.clearAuth();
+
+    // 4. 跳转到登录页
     router.push("/login");
+
+    // 5. 刷新页面以重置路由
+    // 这是清除动态添加的路由的最简单方法
+    window.location.reload();
+
   } else if (command == "user") {
     router.push("/user");
   }
 };
 </script>
 <style scoped>
+/* (样式保持不变) */
 .header {
   position: relative;
   box-sizing: border-box;
@@ -4163,7 +4155,6 @@ const handleCommand = (command: string) => {
 }
 </style>
 
-
 ==================== END FILE: ManageSystemVue\vue-manage-system\src\components\header.vue ====================
 
 
@@ -4182,55 +4173,61 @@ const handleCommand = (command: string) => {
         unique-opened
         router
     >
-      <template v-for="item in items">
-        <template v-if="item.subs">
+      <template v-for="item in sidebarItems">
+        <template v-if="item.children && item.children.length > 0">
+
           <el-sub-menu
-              :index="item.index"
-              :key="item.index"
-              v-permiss="item.permiss"
+              :index="item.path"
+              :key="item.path"
           >
             <template #title>
               <el-icon>
-                <component :is="item.icon"></component>
+                <component :is="item.meta.icon"></component>
               </el-icon>
-              <span>{{ item.title }}</span>
+              <span>{{ item.meta.title }}</span>
             </template>
-            <template v-for="subItem in item.subs">
+
+            <template v-for="subItem in item.children">
+
               <el-sub-menu
-                  v-if="subItem.subs"
-                  :index="subItem.index"
-                  :key="subItem.index"
-                  v-permiss="item.permiss"
+                  v-if="subItem.children && subItem.children.length > 0"
+                  :index="subItem.path"
+                  :key="subItem.path"
               >
-                <template #title>{{ subItem.title }}</template>
+                <template #title>
+                  <span>{{ subItem.meta.title }}</span>
+                </template>
+
                 <el-menu-item
-                    v-for="(threeItem, i) in subItem.subs"
+                    v-for="(threeItem, i) in subItem.children"
                     :key="i"
-                    :index="threeItem.index"
+                    :index="threeItem.path"
                 >
-                  {{ threeItem.title }}
+                  <span>{{ threeItem.meta.title }}</span>
                 </el-menu-item>
+
               </el-sub-menu>
+
               <el-menu-item
                   v-else
-                  :index="subItem.index"
-                  v-permiss="item.permiss"
+                  :index="subItem.path"
+                  :key="subItem.path + '-item'"
               >
-                {{ subItem.title }}
+                <span>{{ subItem.meta.title }}</span>
               </el-menu-item>
             </template>
           </el-sub-menu>
         </template>
+
         <template v-else>
           <el-menu-item
-              :index="item.index"
-              :key="item.index"
-              v-permiss="item.permiss"
+              :index="item.path"
+              :key="item.path + '-main'"
           >
             <el-icon>
-              <component :is="item.icon"></component>
+              <component :is="item.meta.icon"></component>
             </el-icon>
-            <template #title>{{ item.title }}</template>
+            <template #title>{{ item.meta.title }}</template>
           </el-menu-item>
         </template>
       </template>
@@ -4239,88 +4236,15 @@ const handleCommand = (command: string) => {
 </template>
 
 <script setup lang="ts">
-import {computed} from "vue";
-import {useSidebarStore} from "../store/sidebar";
-import {useRoute} from "vue-router";
+import { computed } from "vue";
+import { useSidebarStore } from "../store/sidebar";
+import { useRoute }from "vue-router";
+// 1. 导入 userStore
+import { useUserStore } from "../store/userStore";
 
-const items = [
-  {
-    icon: "Odometer",
-    index: "/dashboard",
-    title: "系统首页",
-    permiss: "1",
-  },
-  {
-    icon: "Calendar",
-    index: "1",
-    title: "人员及设备情况管理",
-    permiss: "2",
-    subs: [
-      {
-        index: "/table",
-        title: "人员管理",
-        permiss: "2",
-      },
-      {
-        index: "/device-management",
-        title: "设备列表管理",
-        permiss: "2",
-      },
-      {
-        index: "/device",
-        title: "设备实时监控",
-        permiss: "2",
-        subs: [
-          {
-            index: "/NJUPT",
-            title: "万达茂",
-            permiss: "3",
-
-          },
-          {
-            index: "/NJU",
-            title: "金鹰",
-            permiss: "3",
-
-          },
-
-        ]
-      },
-    ],
-  },
-  {
-    icon: "DocumentCopy",
-    index: "/tabs",
-    title: "消息中心",
-    permiss: "3",
-  },
-  {
-    icon: "PieChart",
-    index: "/charts",
-    title: "火情相关数据统计",
-    permiss: "11",
-  },
-
-  {
-    icon: "CoffeeCup",
-    index: "/monitor",
-    title: "生命体征监测",
-    permiss: "14",
-
-  },
-  {
-    icon: "Tools",
-    index: "/control",
-    title: "设备控制",
-    permiss: "15",
-  },
-  {
-    icon:"el-icon-picture-outline",
-    index: "/map",
-    title: "逃生路线",
-    permiss: "16",
-  }
-];
+// 2. ⬇️ ⬇️ ⬇️ 删除静态的 'items' 数组 ⬇️ ⬇️ ⬇️
+// const items = [ ... (整个数组被删除) ... ];
+// ⬆️ ⬆️ ⬆️
 
 const route = useRoute();
 const onRoutes = computed(() => {
@@ -4328,9 +4252,28 @@ const onRoutes = computed(() => {
 });
 
 const sidebar = useSidebarStore();
+// 3. 获取 userStore 实例
+const userStore = useUserStore();
+
+// 4. 【核心改动】从 userStore 动态计算菜单项
+const sidebarItems = computed(() => {
+  // 'accessibleRoutes' 包含了所有路由
+  // 我们只关心 'Home' 路由 (path: '/') 下的 children
+  const homeRoute = userStore.accessibleRoutes.find(r => r.name === 'Home');
+
+  if (homeRoute && homeRoute.children) {
+    // 过滤掉 meta.hidden = true 的路由 (如果需要的话)
+    return homeRoute.children.filter(
+        route => !route.meta || !route.meta.hidden
+    );
+  }
+  return []; // 返回空数组
+});
+
 </script>
 
 <style scoped>
+/* (样式保持不变) */
 .sidebar {
   display: block;
   position: absolute;
@@ -4352,7 +4295,6 @@ const sidebar = useSidebarStore();
   height: 100%;
 }
 </style>
-
 
 ==================== END FILE: ManageSystemVue\vue-manage-system\src\components\sidebar.vue ====================
 
@@ -4711,133 +4653,17 @@ const handleTags = (command: string) => {
 
 ==================== START FILE: ManageSystemVue\vue-manage-system\src\router\index.ts ====================
 
-import {createRouter, createWebHashHistory, RouteRecordRaw} from 'vue-router';
-import {usePermissStore} from '../store/permiss';
+import { createRouter, createWebHashHistory, RouteRecordRaw } from 'vue-router';
+import { useUserStore } from '../store/userStore';
 import Home from '../views/home.vue';
-import NProgress from 'nprogress'
-import 'nprogress/nprogress.css'
+import NProgress from 'nprogress';
+import 'nprogress/nprogress.css';
 
-const routes: RouteRecordRaw[] = [
-    {
-        path: '/',
-        redirect: '/dashboard',
-    },
-    {
-        path: '/',
-        name: 'Home',
-        component: Home,
-        children: [
-            {
-                path: '/dashboard',
-                name: 'dashboard',
-                meta: {
-                    title: '系统首页',
-                    permiss: '1',
-                },
-                component: () => import(/* webpackChunkName: "dashboard" */ '../views/dashboard.vue'),
-            },
-            {
-                path: '/table',
-                name: 'basetable',
-                meta: {
-                    title: '表格',
-                    permiss: '2',
-                },
-                component: () => import(/* webpackChunkName: "table" */ '../views/table.vue'),
-            },
-            {
-                path: '/device-management',
-                name: 'deviceManagement',
-                meta: {
-                    title: '设备管理',
-                    permiss: '2',
-                },
-                component: () => import(/* webpackChunkName: "deviceManagement" */ '../views/deviceManagement.vue'),
-            },
-            {
-                path: '/NJUPT',
-                name: 'device in NUJPT',
-                meta: {
-                    title: '万达茂设备监控',
-                    permiss: '2',
-                },
-                component: () => import(/* webpackChunkName: "table" */ '../views/WanDaMao.vue'),
-            },
-            {
-                path: '/NJU',
-                name: 'device in NJU',
-                meta: {
-                    title: '金鹰设备监控',
-                    permiss: '2',
-                },
-                component: () => import(/* webpackChunkName: "table" */ '../views/JingYin.vue'),
-            },
-            {
-                path: '/charts',
-                name: 'basecharts',
-                meta: {
-                    title: '图表',
-                    permiss: '11',
-                },
-                component: () => import(/* webpackChunkName: "charts" */ '../views/charts.vue'),
-            },
-
-            {
-                path: '/tabs',
-                name: 'tabs',
-                meta: {
-                    title: 'tab标签',
-                    permiss: '3',
-                },
-                component: () => import(/* webpackChunkName: "tabs" */ '../views/tabs.vue'),
-            },
-            {
-                path: '/monitor',
-                name: 'monitor',
-                meta: {
-                    title: '生命体征监测',
-                    permiss: '14',
-                },
-                component: () => import(/* webpackChunkName: "donate" */ '../views/monitor.vue'),
-            },
-            {
-                path: '/control',
-                name: 'control',
-                meta: {
-                    title: '设备控制',
-                    permiss: '15',
-                },
-                component: () => import(/* webpackChunkName: "donate" */ '../views/control.vue'),
-
-            },
-            {
-                path: '/map',
-                name: 'map',
-                meta: {
-                    title: '逃生路线',
-                    permiss: '1',
-                },
-                component: () => import(/* webpackChunkName: "dashboard" */ '../views/map.vue'),
-            },
-            {
-                path: '/permission',
-                name: 'permission',
-                meta: {
-                    title: '权限管理',
-                    permiss: '13',
-                },
-                component: () => import(/* webpackChunkName: "permission" */ '../views/permission.vue'),
-            },
-            {
-                path: '/user',
-                name: 'user',
-                meta: {
-                    title: '个人中心',
-                },
-                component: () => import(/* webpackChunkName: "user" */ '../views/user.vue'),
-            },
-        ],
-    },
+/**
+ * 公共路由
+ * 所有用户（无论是否登录）都可以访问
+ */
+export const publicRoutes: RouteRecordRaw[] = [
     {
         path: '/login',
         name: 'Login',
@@ -4854,77 +4680,285 @@ const routes: RouteRecordRaw[] = [
         },
         component: () => import(/* webpackChunkName: "403" */ '../views/403.vue'),
     },
+    {
+        path: '/404',
+        name: '404',
+        meta: {
+            title: '未找到页面',
+        },
+        component: () => import(/* webpackChunkName: "404" */ '../views/404.vue'),
+    },
+    {
+        path: '/:pathMatch(.*)*', // 捕获所有未匹配的路由
+        name: 'NotFound',
+        redirect: '/404'
+    },
 ];
 
+/**
+ * 异步路由 (即 权限路由)
+ * 需要根据用户角色 (authority) 动态添加
+ */
+export const asyncRoutes: RouteRecordRaw[] = [
+    {
+        path: '/',
+        name: 'Home',
+        component: Home,
+        redirect: '/dashboard',
+        meta: {
+            // 父路由也需要 meta，供 sidebar.vue 渲染
+            title: '系统首页',
+            icon: 'Odometer',
+            roles: ['admin', 'user'] // 假设所有登录用户都能看首页
+        },
+        // 这里的 children 将被 sidebar.vue 动态渲染
+        children: [
+            {
+                path: '/dashboard',
+                name: 'dashboard',
+                meta: {
+                    title: '系统首页',
+                    icon: 'Odometer',
+                    roles: ['admin', 'user']
+                },
+                component: () => import(/* webpackChunkName: "dashboard" */ '../views/dashboard.vue'),
+            },
+            {
+                // 【权限点】
+                // 对应您原 sidebar.vue 的 "人员及设备情况管理"
+                path: '/management', // 创建一个父路径
+                name: 'management',
+                meta: {
+                    title: '人员及设备管理',
+                    icon: 'Calendar',
+                    roles: ['admin'] // 重点：只有 admin 能访问
+                },
+                redirect: '/management/table',
+                children: [
+                    {
+                        path: '/management/table',
+                        name: 'basetable',
+                        meta: {
+                            title: '人员管理',
+                            roles: ['admin']
+                        },
+                        component: () => import(/* webpackChunkName: "table" */ '../views/table.vue'),
+                    },
+                    {
+                        path: '/management/device-management',
+                        name: 'deviceManagement',
+                        meta: {
+                            title: '设备列表管理',
+                            roles: ['admin']
+                        },
+                        component: () => import(/* webpackChunkName: "deviceManagement" */ '../views/deviceManagement.vue'),
+                    },
+                    {
+                        path: '/management/device-monitor', // 创建一个父路径
+                        name: 'deviceMonitor',
+                        meta: {
+                            title: '设备实时监控',
+                            roles: ['admin']
+                        },
+                        redirect: '/management/device-monitor/njupt',
+                        children: [
+                            {
+                                path: '/management/device-monitor/njupt',
+                                name: 'device in NUJPT',
+                                meta: {
+                                    title: '万达茂设备监控',
+                                    roles: ['admin'],
+                                },
+                                component: () => import(/* webpackChunkName: "table" */ '../views/WanDaMao.vue'),
+                            },
+                            {
+                                path: '/management/device-monitor/nju',
+                                name: 'device in NJU',
+                                meta: {
+                                    title: '金鹰设备监控',
+                                    roles: ['admin'],
+                                },
+                                component: () => import(/* webpackChunkName: "table" */ '../views/JingYin.vue'),
+                            },
+                        ]
+                    }
+                ]
+            },
+            {
+                path: '/tabs',
+                name: 'tabs',
+                meta: {
+                    title: '消息中心',
+                    icon: 'DocumentCopy',
+                    roles: ['admin', 'user']
+                },
+                component: () => import(/* webpackChunkName: "tabs" */ '../views/tabs.vue'),
+            },
+            {
+                path: '/charts',
+                name: 'basecharts',
+                meta: {
+                    title: '火情数据统计',
+                    icon: 'PieChart',
+                    roles: ['admin', 'user']
+                },
+                component: () => import(/* webpackChunkName: "charts" */ '../views/charts.vue'),
+            },
+            {
+                path: '/monitor',
+                name: 'monitor',
+                meta: {
+                    title: '生命体征监测',
+                    icon: 'CoffeeCup',
+                    roles: ['admin', 'user']
+                },
+                component: () => import(/* webpackChunkName: "donate" */ '../views/monitor.vue'),
+            },
+            {
+                path: '/control',
+                name: 'control',
+                meta: {
+                    title: '设备控制',
+                    icon: 'Tools',
+                    roles: ['admin', 'user']
+                },
+                component: () => import(/* webpackChunkName: "donate" */ '../views/control.vue'),
+            },
+            {
+                path: '/map',
+                name: 'map',
+                meta: {
+                    title: '逃生路线',
+                    icon: 'el-icon-picture-outline', // (请确保您有这个icon)
+                    roles: ['admin', 'user']
+                },
+                component: () => import(/* webpackChunkName: "dashboard" */ '../views/map.vue'),
+            },
+            {
+                path: '/user',
+                name: 'user',
+                meta: {
+                    title: '个人中心',
+                    icon: 'User',
+                    hidden: true, // 在侧边栏中隐藏
+                    roles: ['admin', 'user']
+                },
+                component: () => import(/* webpackChunkName: "user" */ '../views/user.vue'),
+            },
+        ],
+    },
+];
+
+
+/**
+ * 递归过滤异步路由
+ * @param routes 待过滤的路由 (asyncRoutes)
+ * @param authority 用户的角色 (例如 'admin')
+ * @returns 该角色可以访问的路由
+ */
+function filterAsyncRoutes(routes: RouteRecordRaw[], authority: string): RouteRecordRaw[] {
+    const accessibleRoutes: RouteRecordRaw[] = [];
+    routes.forEach(route => {
+        // 复制一份，避免污染
+        const tmp = { ...route };
+
+        // 检查 meta.roles 是否定义，以及 authority 是否在 roles 列表中
+        // 如果没有 meta.roles，则默认允许访问
+        const hasPermission = !tmp.meta || !tmp.meta.roles || (tmp.meta.roles as string[]).includes(authority);
+
+        if (hasPermission) {
+            if (tmp.children) {
+                // 如果有子路由，递归过滤
+                tmp.children = filterAsyncRoutes(tmp.children, authority);
+            }
+            accessibleRoutes.push(tmp);
+        }
+    });
+    return accessibleRoutes;
+}
+
+
+// 创建 router 实例时，只加载公共路由
 const router = createRouter({
     history: createWebHashHistory(),
-    routes,
+    routes: publicRoutes, // 初始路由
 });
 
-// ========== 以下是修改后的路由守卫 ==========
-router.beforeEach((to, from, next) => {
-    NProgress.start();
-    const role = localStorage.getItem('ms_username');
+// 标志位，防止路由重复添加
+let routesAdded = false;
 
-    if (!role && to.path !== '/login') {
-        // 1. 如果未登录且访问的不是 /login，重定向到 /login
-        next('/login');
-    } else if (to.meta.permiss) {
-        // 2. 如果已登录，且目标路由需要权限检查 (to.meta.permiss 存在)
-        //    **此时 Pinia 必定已初始化**
-        const permiss = usePermissStore();
-        if (!permiss.key.includes(String(to.meta.permiss))) {
-            // 权限不足
-            next('/403');
+/**
+ * 核心：全局路由守卫
+ */
+router.beforeEach(async (to, from, next) => {
+    NProgress.start();
+
+    // 必须在守卫内部获取 store 实例
+    const userStore = useUserStore();
+    const authority = userStore.authority; // (等同于 localStorage.getItem('ms_authority'))
+
+    if (authority) {
+        // --- 1. 用户已登录 ---
+        if (to.path === '/login') {
+            // 如果已登录，访问 /login 则重定向到首页
+            next('/');
+            NProgress.done();
         } else {
-            next();
+            // 检查路由是否已动态添加
+            if (!routesAdded) {
+                try {
+                    // 1. 根据角色过滤路由
+                    const finalRoutes = filterAsyncRoutes(asyncRoutes, authority);
+
+                    // 2. 动态添加过滤后的路由
+                    finalRoutes.forEach(route => {
+                        router.addRoute(route);
+                    });
+
+                    // 3. 将完整路由列表存入 Pinia (供 sidebar.vue 使用)
+                    userStore.setAccessibleRoutes(publicRoutes.concat(finalRoutes));
+
+                    // 4. 设置标志位
+                    routesAdded = true;
+
+                    // 5. 使用 ...to, replace: true 确保路由已完全加载
+                    next({ ...to, replace: true });
+
+                } catch (error) {
+                    console.error('动态添加路由失败:', error);
+                    // 添加失败，清除登录状态并重定向到登录页
+                    userStore.clearAuth();
+                    next('/login');
+                    NProgress.done();
+                }
+            } else {
+                // 路由已添加，直接放行
+                next();
+            }
         }
     } else {
-        // 3. 如果已登录，且目标路由不需要权限 (例如 /login 页面)
-        //    或者如果未登录且访问的是 /login
-        next();
+        // --- 2. 用户未登录 ---
+        if (to.path === '/login') {
+            next(); // 访问登录页，放行
+        } else {
+            // 其他页面，全部重定向到登录页
+            next('/login');
+            NProgress.done();
+        }
     }
 });
-// ============================================
 
 router.afterEach(() => {
-    NProgress.done()
-})
+    NProgress.done();
+});
+
+// 退出登录时重置标志位
+// (我们在 header.vue 中使用了 window.location.reload()，
+// 这会重置所有 JS 状态，所以 routesAdded 会自动重置，无需手动处理)
 
 export default router;
 
 ==================== END FILE: ManageSystemVue\vue-manage-system\src\router\index.ts ====================
-
-
-
-==================== START FILE:
-
-import { defineStore } from 'pinia';
-
-interface ObjectList {
-	[key: string]: string[];
-}
-
-export const usePermissStore = defineStore('permiss', {
-	state: () => {
-		const keys = localStorage.getItem('ms_keys');
-		return {
-			key: keys ? JSON.parse(keys) : <string[]>[],
-			defaultList: <ObjectList>{
-				admin: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16'],
-				user: ['1', '2', '3', '11', '13', '14', '15']
-			}
-		};
-	},
-	actions: {
-		handleSet(val: string[]) {
-			this.key = val;
-		}
-	}
-});
-
-
-==================== END FILE:
 
 
 
@@ -5009,6 +5043,76 @@ export const useTagsStore = defineStore('tags', {
 
 
 ==================== END FILE: ManageSystemVue\vue-manage-system\src\store\tags.ts ====================
+
+
+
+==================== START FILE: ManageSystemVue\vue-manage-system\src\store\userStore.ts ====================
+
+import { defineStore } from 'pinia';
+
+// (可选) 定义 UserDO 类型，如果需要更严格的类型检查
+// interface UserDO {
+//     id: number;
+//     name: string;
+//     authority: string;
+//     // ... 其他字段
+// }
+
+export const useUserStore = defineStore('user', {
+    state: () => {
+        return {
+            // 1. 从 localStorage 读取 'ms_authority' 作为初始值
+            authority: localStorage.getItem('ms_authority') || '',
+
+            // 2. 存储由 router/index.ts 计算出的、该角色可以访问的路由
+            accessibleRoutes: [] as any[] // (类型 'any[]' 用于简化，稍后可改为 'RouteRecordRaw[]')
+        };
+    },
+    actions: {
+        /**
+         * 登录时调用 (由 login.vue 调用)
+         * @param auth - 用户角色 (例如 'admin' 或 'user')
+         */
+        setAuthority(auth: string) {
+            this.authority = auth;
+            localStorage.setItem('ms_authority', auth);
+        },
+
+        /**
+         * 动态生成路由时调用 (由 router/index.ts 调用)
+         * @param routes - 该角色被允许访问的完整路由列表
+         */
+        setAccessibleRoutes(routes: any[]) {
+            this.accessibleRoutes = routes;
+        },
+
+        /**
+         * 退出登录时调用 (由 header.vue 调用)
+         */
+        clearAuth() {
+            this.authority = '';
+            this.accessibleRoutes = [];
+            localStorage.removeItem('ms_authority');
+            localStorage.removeItem('ms_username');
+            // 注意: ms_keys 已经因为 permiss.ts 被删除而不再使用
+        }
+    },
+    getters: {
+        /**
+         * 检查当前用户是否拥有指定角色之一
+         * (这是一个方便的辅助函数，目前暂未使用，但很有用)
+         */
+        hasPermission: (state) => (roles: string[]) => {
+            if (state.authority) {
+                // 检查 state.authority 是否在传入的 roles 数组中
+                return roles.includes(state.authority);
+            }
+            return false;
+        }
+    }
+});
+
+==================== END FILE: ManageSystemVue\vue-manage-system\src\store\userStore.ts ====================
 
 
 
@@ -6398,6 +6502,14 @@ const handleDelete = (id: number) => {
 
 // 处理新增（打开弹窗）
 const handleAdd = () => {
+  // ========== 在这里添加权限检查 ==========
+  const authority = localStorage.getItem('ms_authority');
+  if (authority !== 'admin') {
+    ElMessage.error('权限不够，只有管理员才能新增设备');
+    return; // 阻止函数继续执行
+  }
+  // ======================================
+
   // 重置表单
   newDeviceForm.name = "";
   newDeviceForm.location = "";
@@ -6716,233 +6828,166 @@ const handleCurrentChange = (val) => {
 ==================== START FILE: ManageSystemVue\vue-manage-system\src\views\login.vue ====================
 
 <template>
-  <div class="login-wrap">
-    <div class="ms-login">
-      <div class="ms-title">{{ isRegister ? '注册新用户' : '后台管理系统' }}</div>
-      <el-form :model="param" :rules="rules" ref="loginFormRef" label-width="0px" class="ms-content">
-
-        <el-form-item prop="username">
-          <el-input v-model="param.username" placeholder="用户名">
-            <template #prepend>
-              <el-button :icon="User"></el-button>
-            </template>
-          </el-input>
-        </el-form-item>
-
-        <el-form-item prop="password">
-          <el-input
-              type="password"
-              placeholder="密码"
-              v-model="param.password"
-              @keyup.enter="handleSubmit(loginFormRef)"
+  <div class="header">
+    <div class="collapse-btn" @click="collapseChage">
+      <el-icon v-if="sidebar.collapse"><Expand /></el-icon>
+      <el-icon v-else><Fold /></el-icon>
+    </div>
+    <div class="logo">觅生者后台管理系统</div>
+    <div class="header-right">
+      <div class="header-user-con">
+        <div class="btn-bell" @click="router.push('/tabs')">
+          <el-tooltip
+              effect="dark"
+              :content="message ? `有${message}条未读消息` : `消息中心`"
+              placement="bottom"
           >
-            <template #prepend>
-              <el-button :icon="Lock"></el-button>
-            </template>
-          </el-input>
-        </el-form-item>
-
-        <el-form-item v-if="isRegister" prop="confirmPassword">
-          <el-input
-              type="password"
-              placeholder="确认密码"
-              v-model="param.confirmPassword"
-              @keyup.enter="handleSubmit(loginFormRef)"
-          >
-            <template #prepend>
-              <el-button :icon="Lock"></el-button>
-            </template>
-          </el-input>
-        </el-form-item>
-
-        <div class="login-btn">
-          <el-button type="primary" @click="handleSubmit(loginFormRef)">
-            {{ isRegister ? '注册' : '登录' }}
-          </el-button>
+            <i class="el-icon-lx-notice"></i>
+          </el-tooltip>
+          <span class="btn-bell-badge" v-if="message"></span>
         </div>
-
-        <div class="login-tips-right">
-          <el-link type="primary" @click="toggleRegister">
-            {{ isRegister ? '已有账户？去登录' : '没有账户？去注册' }}
-          </el-link>
-        </div>
-      </el-form>
+        <el-avatar class="user-avator" :size="30" :src="imgurl" />
+        <el-dropdown class="user-name" trigger="click" @command="handleCommand">
+          <span class="el-dropdown-link">
+            {{ username }}
+            <el-icon class="el-icon--right">
+              <arrow-down />
+            </el-icon>
+          </span>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="user">个人中心</el-dropdown-item>
+              <el-dropdown-item divided command="loginout"
+              >退出登录</el-dropdown-item
+              >
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+      </div>
     </div>
   </div>
 </template>
-
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
-import { useTagsStore } from '../store/tags';
-import { usePermissStore } from '../store/permiss';
-import { useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
-import type { FormInstance, FormRules } from 'element-plus';
-import { Lock, User } from '@element-plus/icons-vue';
-import service from '../utils/request';
-// ========== 1. 在这里导入 service ==========
+import { onMounted } from "vue";
+import { useSidebarStore } from "../store/sidebar";
+import { useRouter } from "vue-router";
+import imgurl from "../assets/img/img.jpg";
+// 1. 导入新的 userStore
+import { useUserStore } from "../store/userStore";
 
-// 登录/注册状态切换
-const isRegister = ref(false);
+const username: string | null = localStorage.getItem("ms_username");
+const message: number = 2;
 
+const sidebar = useSidebarStore();
+// 侧边栏折叠
+const collapseChage = () => {
+  sidebar.handleCollapse();
+};
+
+onMounted(() => {
+  if (document.body.clientWidth < 1500) {
+    collapseChage();
+  }
+});
+
+// 2. 获取 userStore 实例
+const userStore = useUserStore();
 const router = useRouter();
-const param = reactive({
-  username: '',
-  password: '',
-  confirmPassword: '',
-});
-// 确认密码的验证器
-const validatePassConfirm = (rule: any, value: any, callback: any) => {
-  if (value === '') {
-    callback(new Error('请再次输入密码'));
-  } else if (value !== param.password) {
-    callback(new Error('两次输入密码不一致!'));
-  } else {
-    callback();
+
+// 用户名下拉菜单选择事件
+const handleCommand = (command: string) => {
+  if (command == "loginout") {
+    // 3. 【核心改动】调用 clearAuth 清除所有登录信息
+    userStore.clearAuth();
+
+    // 4. 跳转到登录页
+    router.push("/login");
+
+    // 5. 刷新页面以重置路由
+    // 这是清除动态添加的路由的最简单方法
+    window.location.reload();
+
+  } else if (command == "user") {
+    router.push("/user");
   }
 };
-const rules = reactive<FormRules>({
-  username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' },
-  ],
-  password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, message: '密码长度不能少于6位', trigger: 'blur' }
-  ],
-  confirmPassword: [
-    { required: true, validator: validatePassConfirm, trigger: 'blur' }
-  ],
-});
-const loginFormRef = ref<FormInstance>();
-const permiss = usePermissStore();
-
-// 切换登录/注册模式
-const toggleRegister = () => {
-  isRegister.value = !isRegister.value;
-  loginFormRef.value?.resetFields();
-};
-
-// 统一的提交处理
-const handleSubmit = (formEl: FormInstance | undefined) => {
-  if (!formEl) return;
-  formEl.validate((valid: boolean) => {
-    if (valid) {
-      if (isRegister.value) {
-        submitRegister(); // 调用注册
-      } else {
-        submitLogin(); // 调用登录
-      }
-    } else {
-      ElMessage.error('表单验证失败');
-      return false;
-    }
-  });
-};
-
-// 登录逻辑
-const submitLogin = async () => {
-  try {
-    // 1. 调用后端 /user/login 接口
-    const res = await service.post('/user/login', {
-      name: param.username,
-      password: param.password
-    });
-    // 2. 检查后端返回
-    if (res.code === '200') {
-      ElMessage.success('登录成功');
-      const userData = res.data; // 后端返回的 UserDO
-
-      // 3. 存储用户名
-      localStorage.setItem('ms_username', userData.name);
-      // 4. 【重要】根据后端返回的 authority 设置权限
-      //    我们从 res.data.authority 获取权限
-      //    并映射到 permiss.defaultList 中
-      let userRole = 'user'; // 默认为普通用户
-      if (userData.authority === 'admin') { // 假设 admin 的 authority 字符串是 'admin'
-        userRole = 'admin';
-      }
-
-      const keys = permiss.defaultList[userRole];
-      permiss.handleSet(keys);
-      localStorage.setItem('ms_keys', JSON.stringify(keys));
-      // 5. 跳转到首页
-      router.push('/');
-
-    } else {
-      // "用户不存在" 或 "密码错误"
-      ElMessage.error(res.message || '登录失败');
-    }
-  } catch (error) {
-    console.error(error);
-    ElMessage.error('登录请求失败，请检查后端服务。');
-  }
-};
-// ========== 2. 替换为这个新的 submitRegister 函数 ==========
-const submitRegister = async () => {
-  try {
-    // 调用我们创建的后端 /user/register 接口
-    const res = await service.post('/user/register', {
-      name: param.username,
-      password: param.password
-      // 注意：我们发送的是 name 和 password，对应 UserDO.java
-    });
-    if (res.code === '200') {
-      ElMessage.success('注册成功！请登录。');
-      isRegister.value = false; // 自动切换回登录界面
-      loginFormRef.value?.resetFields(); // 清空表单
-    } else {
-      // 处理后端可能返回的错误，例如 "用户名已存在"
-      ElMessage.error(res.message || '注册失败');
-    }
-  } catch (error) {
-    console.error(error);
-    ElMessage.error('注册请求失败，请检查后端服务是否运行。');
-  }
-};
-// ========================================================
-
-const tags = useTagsStore();
-tags.clearTags();
 </script>
-
 <style scoped>
-.login-wrap {
+/* (样式保持不变) */
+.header {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  height: 70px;
+  font-size: 22px;
+  color: #fff;
+}
+.collapse-btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  float: left;
+  padding: 0 21px;
+  cursor: pointer;
+}
+.header .logo {
+  float: left;
+  width: 250px;
+  line-height: 70px;
+}
+.header-right {
+  float: right;
+  padding-right: 50px;
+}
+.header-user-con {
+  display: flex;
+  height: 70px;
+  align-items: center;
+}
+.btn-fullscreen {
+  transform: rotate(45deg);
+  margin-right: 5px;
+  font-size: 24px;
+}
+.btn-bell,
+.btn-fullscreen {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  text-align: center;
+  border-radius: 15px;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  background-image: url(../assets/img/login-bg.jpg);
-  background-size: 100%;
 }
-.ms-title {
-  line-height: 50px;
+.btn-bell-badge {
+  position: absolute;
+  right: 4px;
+  top: 0px;
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: #f56c6c;
+  color: #fff;
+}
+.btn-bell .el-icon-lx-notice {
+  color: #fff;
+}
+.user-name {
+  margin-left: 10px;
+}
+.user-avator {
+  margin-left: 20px;
+}
+.el-dropdown-link {
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+.el-dropdown-menu__item {
   text-align: center;
-  font-size: 20px;
-  color: #333;
-  font-weight: bold;
-  padding-top: 10px;
-}
-.ms-login {
-  width: 350px;
-  border-radius: 5px;
-  background: #fff;
-}
-.ms-content {
-  padding: 10px 30px 30px;
-}
-.login-btn {
-  text-align: center;
-}
-.login-btn button {
-  width: 100%;
-  height: 36px;
-  margin-bottom: 10px;
-}
-.login-tips-right {
-  font-size: 12px;
-  color: #333;
-  text-align: right;
 }
 </style>
 
@@ -7146,8 +7191,6 @@ onMounted(() => {
 <script setup lang="ts" name="permission">
 import { ref } from 'vue';
 import { ElTree } from 'element-plus';
-import { usePermissStore } from '../store/permiss';
-
 const role = ref<string>('admin');
 
 interface Tree {
@@ -7497,6 +7540,14 @@ const handleView = (row: TableItem) => {
 
 // 【已更新】新增时，清空表单
 const handleAdd = () => {
+  // ========== 在这里添加权限检查 ==========
+  const authority = localStorage.getItem('ms_authority');
+  if (authority !== 'admin') {
+    ElMessage.error('权限不够，只有管理员才能新增用户');
+    return; // 阻止函数继续执行
+  }
+  // ======================================
+
   rowData.value = {} as TableItem; // 清空表单
   idEdit.value = false;
   visible.value = true;
