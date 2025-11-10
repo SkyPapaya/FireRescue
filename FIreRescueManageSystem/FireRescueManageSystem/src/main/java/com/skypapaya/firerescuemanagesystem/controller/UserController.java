@@ -70,6 +70,39 @@ public class UserController {
         // )
         UserDO user = new UserDO((String) body.get("name"), (String) body.get("eMail"), (String) body.get("phone"), (String) body.get("sex"), (String) body.get("password"), body.get("age") != null ? (int) body.get("age") : 0, (String) body.get("address"));
         System.out.println("user:"+user.toString());
+        // 1. 检查用户名
+        UserDO dbUserByName = userDAO.findByName(user.getName());
+        if (dbUserByName != null) {
+            return Result.error("501", "该用户名已被注册");
+        }
+
+        // 2. 检查邮箱
+        UserDO dbUserByEmail = userDAO.findByEMail(user.getEMail());
+        if (dbUserByEmail != null) {
+            return Result.error("502", "该邮箱已被注册");
+        }
+
+        // 3. 检查phone
+        UserDO dbUserByPhone = userDAO.findByPhone(user.getPhone());
+        if (dbUserByPhone != null) {
+            return Result.error("503", "该电话已被注册");
+        }
+
+        // 3. 【新增逻辑】检查年龄
+        // 检查 age 字段是否被提供了 (因为它是可选的)
+        // 注意：UserDO.java 中 age 字段是 int 类型，它在 JSON 没传时默认为 0，
+        // 如果是 Integer 类型，它默认为 null。我们假设你用的是 int。
+
+        // 如果传来的年龄不为 0 (即用户输入了) 并且小于 18
+        if (user.getAge() != 0 && user.getAge() < 18) {
+            return Result.error("504", "注册用户年龄必须大于18岁");
+        }
+        // 如果你的 UserDO.java 中 age 是 Integer 类型，请使用下面的判断：
+        /*
+        if (user.getAge() != null && user.getAge() < 18) {
+             return Result.error("503", "注册用户年龄必须大于18岁");
+        }
+        */
         // 我们跳过加密，直接插入
         int result = userDAO.registerUser(user);
 
