@@ -1,9 +1,11 @@
 package com.skypapaya.firerescuemanagesystem.controller;
+
 import com.skypapaya.firerescuemanagesystem.DAO.UserDAO;
 import com.skypapaya.firerescuemanagesystem.DO.UserDO;
 import com.skypapaya.firerescuemanagesystem.model.Result;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,7 +62,7 @@ public class UserController {
     @ResponseBody
 //    public Result registerUser(@RequestBody UserDO user) {
     public Result registerUser(@RequestBody Map<String, Object> body) {
-        System.out.println("user:"+body.toString());
+        System.out.println("user:" + body.toString());
         // 检查用户名是否已存在 (可选但推荐)
         // ... (
         //   List<UserDO> users = userDAO.findByName(user.getName());
@@ -69,7 +71,7 @@ public class UserController {
         //   }
         // )
         UserDO user = new UserDO((String) body.get("name"), (String) body.get("eMail"), (String) body.get("phone"), (String) body.get("sex"), (String) body.get("password"), body.get("age") != null ? (int) body.get("age") : 0, (String) body.get("address"));
-        System.out.println("user:"+user.toString());
+        System.out.println("user:" + user.toString());
         // 1. 检查用户名
         UserDO dbUserByName = userDAO.findByName(user.getName());
         if (dbUserByName != null) {
@@ -77,7 +79,7 @@ public class UserController {
         }
 
         // 2. 检查邮箱
-        UserDO dbUserByEmail = userDAO.findByEMail(user.getEMail());
+        UserDO dbUserByEmail = userDAO.findByEMail(user.getE_mail());
         if (dbUserByEmail != null) {
             return Result.error("502", "该邮箱已被注册");
         }
