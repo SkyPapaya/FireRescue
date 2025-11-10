@@ -98,8 +98,9 @@ public class HuaweiCloudMQTT {
 
                             System.out.println(life);
 
+                            //这里有问题！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！  device现在是写死的，mqtt不会返回设备名字
                             // 插入数据库
-                            EnvironmentDO environmentDO = new EnvironmentDO(co, fire, humidity, 0, smoke, temperature,"");
+                            EnvironmentDO environmentDO = new EnvironmentDO(co, fire, humidity, 0, smoke, temperature,"133");
                             environmentDAO.insertEnvironmentDO(environmentDO);
                             VitalSignsDO vitalSignsDO = new VitalSignsDO( breathRate,heartRate,  signalStrength,  active,  distance,  exist,  life,  people);
                             vitalSignsDAO.insertVitalSignsDO(vitalSignsDO);

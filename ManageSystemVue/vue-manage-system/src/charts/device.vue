@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import {ref, onMounted} from 'vue';
 import * as echarts from 'echarts';
 import service from "../utils/request";
 import {ElNotification} from "element-plus";
@@ -75,10 +75,10 @@ let option: {
         } else {
           return 'blue';
         }
-        if(name === 'co' && value > 20) {
+        if (name === 'co' && value > 20) {
           return 'red';
         }
-        if(name === 'smoke' && value > 30) {
+        if (name === 'smoke' && value > 30) {
           return 'red';
         }
       }
@@ -101,8 +101,8 @@ let co;
 let smoke;
 //获取数据
 const load = () => {
-  service.get('environment/getTheLatest').then((res) => {
-   //console.log(res.data[0].co);
+  service.get('environment/getLatestFromAllDevices').then((res) => {
+    //console.log(res.data[0].co);
     humidity = res.data[0].humidity;
     temperature = res.data[0].temperature;
     fire = res.data[0].fire * 100;
@@ -134,12 +134,12 @@ onMounted(() => {
     // 更新图表
     myChart.setOption(option);
     //弹窗设置
-    if(temperature > 50 || fire > 0.01 || co > 20 || smoke > 30) {
+    if (temperature > 50 || fire > 0.01 || co > 20 || smoke > 30) {
       ElNotification({
         title: 'Warning',
         message: '有火情',
         type: 'error',
-        duration:1000
+        duration: 1000
       });
     }
   }, 1000);
