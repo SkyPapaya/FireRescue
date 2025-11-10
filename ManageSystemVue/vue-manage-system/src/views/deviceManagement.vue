@@ -129,6 +129,14 @@ const handleDelete = (id: number) => {
 
 // 处理新增（打开弹窗）
 const handleAdd = () => {
+  // ========== 在这里添加权限检查 ==========
+  const authority = localStorage.getItem('ms_authority');
+  if (authority !== 'admin') {
+    ElMessage.error('权限不够，只有管理员才能新增设备');
+    return; // 阻止函数继续执行
+  }
+  // ======================================
+
   // 重置表单
   newDeviceForm.name = "";
   newDeviceForm.location = "";

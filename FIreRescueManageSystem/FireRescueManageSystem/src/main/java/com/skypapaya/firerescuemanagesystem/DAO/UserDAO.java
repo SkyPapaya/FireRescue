@@ -16,11 +16,8 @@ public interface UserDAO {
 
     int registerUser(UserDO user);
 
-    /**
-     * 根据用户名查询用户
-     * @param name 用户名
-     * @return UserDO 对象，如果不存在则为 null
-     */
+    //根据用户名查询用户
+
     UserDO findByName(@Param("name") String name);
 
     //分页查询的实现

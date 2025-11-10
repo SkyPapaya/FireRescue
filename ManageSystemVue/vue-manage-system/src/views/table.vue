@@ -231,6 +231,14 @@ const handleView = (row: TableItem) => {
 
 // 【已更新】新增时，清空表单
 const handleAdd = () => {
+  // ========== 在这里添加权限检查 ==========
+  const authority = localStorage.getItem('ms_authority');
+  if (authority !== 'admin') {
+    ElMessage.error('权限不够，只有管理员才能新增用户');
+    return; // 阻止函数继续执行
+  }
+  // ======================================
+
   rowData.value = {} as TableItem; // 清空表单
   idEdit.value = false;
   visible.value = true;

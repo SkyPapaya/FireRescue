@@ -130,7 +130,7 @@ const submitLogin = async () => {
       name: param.username,
       password: param.password
     });
-    // 2. 检查后端返回
+    // 2. 检查后端返回F
     if (res.code === '200') {
       ElMessage.success('登录成功');
       const userData = res.data; // 后端返回的 UserDO
@@ -138,16 +138,17 @@ const submitLogin = async () => {
       // 3. 存储用户名
       localStorage.setItem('ms_username', userData.name);
       // 4. 【重要】根据后端返回的 authority 设置权限
-      //    我们从 res.data.authority 获取权限
-      //    并映射到 permiss.defaultList 中
-      let userRole = 'user'; // 默认为普通用户
-      if (userData.authority === 'admin') { // 假设 admin 的 authority 字符串是 'admin'
+      let userRole = 'user';
+      if (userData.authority === 'admin') {
         userRole = 'admin';
       }
 
       const keys = permiss.defaultList[userRole];
       permiss.handleSet(keys);
       localStorage.setItem('ms_keys', JSON.stringify(keys));
+
+      // ========== 在这里添加下面这行代码 ==========
+      localStorage.setItem('ms_authority', userData.authority || 'user'); // 存储权限字符串
       // 5. 跳转到首页
       router.push('/');
 
