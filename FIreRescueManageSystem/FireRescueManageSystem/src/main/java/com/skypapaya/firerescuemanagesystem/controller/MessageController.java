@@ -6,6 +6,7 @@ import com.skypapaya.firerescuemanagesystem.model.Result;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -20,7 +21,7 @@ public class MessageController {
 
     /**
      * 获取所有消息，并按状态 (unread, read, recycle) 分组
-     * 这完全匹配 tabs.vue [cite: 683] 的 'state' 结构
+     * 这完全匹配 tabs.vue 的 'state' 结构
      */
     @GetMapping("/all")
     public Result getAllMessages() {
@@ -53,7 +54,7 @@ public class MessageController {
     }
 
     /**
-     * 标为已读 (对应 handleRead [cite: 685])
+     * 标为已读 (对应 handleRead )
      * 0 -> 1
      */
     @PutMapping("/read/{id}")
@@ -63,7 +64,7 @@ public class MessageController {
     }
 
     /**
-     * 删除到回收站 (对应 handleDel [cite: 686])
+     * 删除到回收站 (对应 handleDel )
      * 1 -> 2
      */
     @PutMapping("/recycle/{id}")
@@ -73,7 +74,7 @@ public class MessageController {
     }
 
     /**
-     * 从回收站还原 (对应 handleRestore [cite: 687])
+     * 从回收站还原 (对应 handleRestore)
      * 2 -> 1
      */
     @PutMapping("/restore/{id}")
@@ -83,7 +84,7 @@ public class MessageController {
     }
 
     /**
-     * 全部标为已读 (对应 "全部标为已读" 按钮 [cite: 676-677])
+     * 全部标为已读 (对应 "全部标为已读" 按钮)
      * 0 -> 1
      */
     @PutMapping("/read-all")
@@ -93,7 +94,7 @@ public class MessageController {
     }
 
     /**
-     * 删除全部已读 (对应 "删除全部" 按钮 [cite: 679])
+     * 删除全部已读 (对应 "删除全部" 按钮)
      * 1 -> 2
      */
     @PutMapping("/recycle-all-read")
@@ -103,12 +104,26 @@ public class MessageController {
     }
 
     /**
-     * 清空回收站 (对应 "清空回收站" 按钮 [cite: 681-682])
+     * 清空回收站 (对应 "清空回收站" 按钮)
      * 2 -> (DELETE)
      */
     @DeleteMapping("/recycle-bin")
     public Result emptyRecycleBin() {
         messageDAO.deleteByStatus(2);
+        return Result.success();
+    }
+
+    /**
+     * 新增消息
+     * 给外界提供一个新增消息的接口
+     **/
+    @PostMapping("/insertMessage")
+    public Result addMessage(@RequestBody Map<String, String> payload) {
+        MessageDO alertMessage = new MessageDO();
+        alertMessage.setTitle(payload.get("title"));
+        alertMessage.setMessageTime(LocalDateTime.now());
+        alertMessage.setStatus(0); // 0 = 未读
+        messageDAO.insertMessage(alertMessage);
         return Result.success();
     }
 }
